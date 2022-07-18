@@ -62,6 +62,7 @@ void PetitionManager::emitResult()
         qDebug() << "print_function:" << __FUNCTION__ << "response_text:" << rs->response_text.c_str() << Qt::endl;
     }
     vecPetitionVotes.clear();
+    mapRequestToBot.clear();
 }
 
 QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot& rq)

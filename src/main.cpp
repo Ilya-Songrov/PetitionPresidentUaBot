@@ -1,7 +1,7 @@
 #include <QCoreApplication>
 #include <QCommandLineParser>
 
-#include "BotManager.h"
+#include "BotMain.h"
 
 int main(int argc, char *argv[])
 {
@@ -14,8 +14,8 @@ int main(int argc, char *argv[])
         parser.addVersionOption();
         parser.process(app);
 
-        BotManager managerBot;
-        managerBot.startBot();
+        BotMain botMain;
+        botMain.startBot();
 
         return app.exec();
     }

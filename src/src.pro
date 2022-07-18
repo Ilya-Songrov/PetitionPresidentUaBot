@@ -19,7 +19,8 @@ include($$PETITION_PRESIDENT_UA_BOT_SOURCE_TREE/QSerializer/qserializer.pri)
 SOURCES += \
         ApiClient/ApiClientAbstract.cpp \
         ApiClient/ApiClientPetition.cpp \
-        BotManager.cpp \
+        BotMain.cpp \
+        Mangers/BotThreadManager.cpp \
         Mangers/PetitionManager.cpp \
         Utils/FileWorker.cpp \
         main.cpp
@@ -28,10 +29,10 @@ HEADERS += \
     $$PETITION_PRESIDENT_UA_BOT_SOURCE_TREE/tgbot-cpp/include/tgbot/tgbot.h \
     ApiClient/ApiClientAbstract.hpp \
     ApiClient/ApiClientPetition.hpp \
-    BotManager.h \
+    BotMain.h \
+    Mangers/BotThreadManager.hpp \
     Mangers/LogManager.hpp \
     Mangers/PetitionManager.hpp \
-    Mangers/SignalEmitterManager.hpp \
     Models/PetitionVotes.hpp \
     Models/PetitionVotesNode.hpp \
     Models/RequestToBot.hpp \

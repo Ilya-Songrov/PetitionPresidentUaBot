@@ -7,25 +7,23 @@
 
 #include "FileWorker.h"
 #include "PetitionManager.hpp"
-#include "SignalEmitterManager.hpp"
+#include "BotThreadManager.hpp"
 
 #include "tgbot/tgbot.h"
 
-using namespace TgBot;
-
-class BotManager : public QObject
+class BotMain : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit BotManager(QObject *parent = nullptr);
+    explicit BotMain(QObject *parent = nullptr);
 
     void startBot();
 
 private slots:
-    void slotOnCommand(const Message::Ptr message);
-    void slotOnAnyMessageWasWrite(const Message::Ptr message);
-    void slotOnCallbackQueryWasWrite(const CallbackQuery::Ptr callbackQuery);
+    void slotOnCommand(const TgBot::Message::Ptr message);
+    void slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message);
+    void slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callbackQuery);
     void slotListResultReady(QSharedPointer<ResponseFromBot> rs);
 
 private:
@@ -33,9 +31,8 @@ private:
     QString getTokenFromFile();
 
 private:
-    QScopedPointer<Bot> bot;
+    QScopedPointer<BotThreadManager> botThreadManager;
     QScopedPointer<PetitionManager> petitionManager;
-    QScopedPointer<SignalEmitterManager> signalEmitterManager;
     QThread threadPetitionManager;
 };
 
