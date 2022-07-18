@@ -1,5 +1,5 @@
 QT -= gui
-QT += concurrent network
+QT += concurrent network sql
 
 CONFIG += c++17 console
 CONFIG -= app_bundle
@@ -20,6 +20,8 @@ SOURCES += \
         ApiClient/ApiClientAbstract.cpp \
         ApiClient/ApiClientPetition.cpp \
         BotMain.cpp \
+        Db/DbManager.cpp \
+        Db/DbWorker.cpp \
         Mangers/BotThreadManager.cpp \
         Mangers/PetitionManager.cpp \
         Utils/FileWorker.cpp \
@@ -30,20 +32,28 @@ HEADERS += \
     ApiClient/ApiClientAbstract.hpp \
     ApiClient/ApiClientPetition.hpp \
     BotMain.h \
+    Db/DbManager.hpp \
+    Db/DbTables.hpp \
+    Db/DbWorker.hpp \
     Mangers/BotThreadManager.hpp \
     Mangers/LogManager.hpp \
     Mangers/PetitionManager.hpp \
+    Models/DbPetitionVote.hpp \
+    Models/GlobalConfig.hpp \
+    Models/GlobalConfigInstance.hpp \
+    Models/GlobalConfigLog.hpp \
     Models/PetitionVotes.hpp \
     Models/PetitionVotesNode.hpp \
     Models/RequestToBot.hpp \
     Models/ResponseFromBot.hpp \
-    Utils/FileWorker.h
+    Utils/FileWorker.hpp
 
 INCLUDEPATH += \
     $$PWD/Utils \
     $$PWD/ApiClient \
     $$PWD/Mangers \
     $$PWD/Models \
+    $$PWD/Db \
     $$PETITION_PRESIDENT_UA_BOT_SOURCE_TREE/tgbot-cpp/include
 
 

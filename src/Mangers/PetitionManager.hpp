@@ -6,6 +6,7 @@
 #include "ApiClientPetition.hpp"
 #include "RequestToBot.hpp"
 #include "ResponseFromBot.hpp"
+#include "DbManager.hpp"
 
 class PetitionManager : public QObject
 {
@@ -14,6 +15,7 @@ public:
     explicit PetitionManager(QObject *parent = nullptr);
 
     void init();
+    void fillDatabase();
 
 public slots:
     void checkRequestToBot(const RequestToBot requestToBot);
@@ -24,16 +26,16 @@ signals:
 private slots:
     void slotPetitionVotesTotalReceived(int totalVotes);
     void slotPetitionVotesListReceived(QSharedPointer<PetitionVotes> votes);
+    void saveVotesListToDb(QSharedPointer<PetitionVotes> votes);
 
 private:
     void emitResult();
     QSharedPointer<ResponseFromBot> findMatches(const RequestToBot& rq);
+    void runfillingDatabase();
 
 private:
     QScopedPointer<ApiClientPetition> apiClientPetition;
     QMap<std::int64_t, RequestToBot> mapRequestToBot;
-    QVector<PetitionVotesNode> vecPetitionVotes;
-//    QThread thread;
     int lastRqPage;
 };
 

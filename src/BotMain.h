@@ -5,9 +5,11 @@
 #include <QVariant>
 #include <QtConcurrent>
 
-#include "FileWorker.h"
+#include "FileWorker.hpp"
 #include "PetitionManager.hpp"
 #include "BotThreadManager.hpp"
+#include "DbManager.hpp"
+#include "GlobalConfigInstance.hpp"
 
 #include "tgbot/tgbot.h"
 
@@ -28,7 +30,7 @@ private slots:
 
 private:
     void setSettings();
-    QString getTokenFromFile();
+    void initDb();
 
 private:
     QScopedPointer<BotThreadManager> botThreadManager;

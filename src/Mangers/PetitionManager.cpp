@@ -5,28 +5,30 @@ PetitionManager::PetitionManager(QObject *parent)
     , apiClientPetition(nullptr)
     , lastRqPage(0)
 {
-// 17 липня 2022
+
 }
 
 void PetitionManager::init()
 {
     apiClientPetition.reset(new ApiClientPetition());
-//    apiClientPetition->moveToThread(&thread);
     apiClientPetition->init();
     connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesTotalReceived,
             this, &PetitionManager::slotPetitionVotesTotalReceived);
     connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesListReceived,
             this, &PetitionManager::slotPetitionVotesListReceived);
+
+    mapRequestToBot.clear();
+    lastRqPage = 0;
+}
+
+void PetitionManager::fillDatabase()
+{
+    runfillingDatabase();
+    init();
 }
 
 void PetitionManager::checkRequestToBot(const RequestToBot requestToBot)
 {
-    qDebug() << "print_function:" << __FUNCTION__ << "request_text:" << requestToBot.request_text.c_str() << Qt::endl;
-    if (!vecPetitionVotes.isEmpty()) {
-        emitResult();
-        return;
-    }
-
     if (mapRequestToBot.isEmpty()) {
         apiClientPetition->requestToGetPetitionVotesTotal();
     }
@@ -35,11 +37,11 @@ void PetitionManager::checkRequestToBot(const RequestToBot requestToBot)
 
 void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
 {
-    if (totalVotes == vecPetitionVotes.size() || totalVotes == -1) {
+    const int countTotalVotes = DbManager::instance().getCountTotalVotes();
+    if (countTotalVotes >= totalVotes || totalVotes == -1) {
         emitResult();
         return;
     }
-    vecPetitionVotes.clear();
     lastRqPage = 0;
     apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
 }
@@ -50,8 +52,18 @@ void PetitionManager::slotPetitionVotesListReceived(QSharedPointer<PetitionVotes
         emitResult();
         return;
     }
-    vecPetitionVotes += votes->rows;
+    saveVotesListToDb(votes);
     apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
+}
+
+void PetitionManager::saveVotesListToDb(QSharedPointer<PetitionVotes> votes)
+{
+    for (const PetitionVotesNode& node : votes->rows) {
+        DbPetitionVote dbPetitionVote(node.number,
+                                      node.name,
+                                      node.date);
+        DbManager::instance().saveDbPetitionVote(dbPetitionVote);
+    }
 }
 
 void PetitionManager::emitResult()
@@ -59,36 +71,68 @@ void PetitionManager::emitResult()
     for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
         QSharedPointer<ResponseFromBot> rs = findMatches(rq);
         emit signalListResultReady(rs);
-        qDebug() << "print_function:" << __FUNCTION__ << "response_text:" << rs->response_text.c_str() << Qt::endl;
     }
-    vecPetitionVotes.clear();
     mapRequestToBot.clear();
 }
 
 QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot& rq)
 {
+    const int maxRsSize = 4096;
     const QString textQt = QString::fromStdString(rq.request_text);
     const QStringList list = textQt.split(' ');
-    QString res;
-    for (const PetitionVotesNode& node : vecPetitionVotes) {
-        for (const QString& value : list) {
-            if (node.name.contains(value)) {
-                res += node.number
-                        + " "
-                        + node.name
-                        + " ("
-                        + node.date
-                        + ")"
-                        + "\n"
-                        ;
-            }
+    const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list);
+    QString res = "Знайдені збіги:\n";
+    for (const QSharedPointer<DbPetitionVote>& dbPetitionVote : vecRes) {
+        QString vote = dbPetitionVote->number_str
+                + " "
+                + dbPetitionVote->name
+                + " ("
+                + dbPetitionVote->date_str
+                + ")"
+                + "\n"
+                ;
+        if (res.size() + vote.size() > maxRsSize) {
+            break;
         }
+        res += vote;
     }
-    if (res.isEmpty()) {
+    if (vecRes.isEmpty()) {
         res = "Нічого не знайденно";
     }
     QSharedPointer<ResponseFromBot> rs(new ResponseFromBot);
     rs->chat_id = rq.chat_id;
     rs->response_text = res.toStdString();
     return rs;
+}
+
+void PetitionManager::runfillingDatabase()
+{
+    bool allDataIsReceived  = false;
+    auto functionSaveVotesListToDb = [this, &allDataIsReceived](QSharedPointer<PetitionVotes> votes)
+    {
+        saveVotesListToDb(votes);
+        allDataIsReceived = votes->rows.isEmpty();
+    };
+
+    apiClientPetition.reset(new ApiClientPetition());
+    apiClientPetition->init();
+    connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesListReceived,
+            this, functionSaveVotesListToDb);
+
+    while(true)
+    {
+        if (allDataIsReceived) {
+            return;
+        }
+        QEventLoop loop;
+        QTimer timer;
+        QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+        QObject::connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesListReceived,
+                         &loop, &QEventLoop::quit);
+        timer.start(3600000);
+        apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
+        loop.exec();
+        QThread::msleep(500);
+    }
+
 }

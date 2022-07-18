@@ -2,8 +2,8 @@
 
 
 BotMain::BotMain(QObject *parent) : QObject(parent)
-  , botThreadManager(new BotThreadManager(getTokenFromFile().toStdString()))
-  , petitionManager(new PetitionManager())
+  , botThreadManager(nullptr)
+  , petitionManager(nullptr)
 {
 
 }
@@ -14,6 +14,11 @@ void BotMain::startBot()
     //        printf("SIGINT got\n");
     //        exit(0);
     //    });
+
+    initDb();
+
+    botThreadManager.reset(new BotThreadManager(GlobalConfigInstance::instance().getTokenFromFile()));
+    petitionManager.reset(new PetitionManager());
     petitionManager->init();
     setSettings();
 }
@@ -42,7 +47,21 @@ void BotMain::slotListResultReady(QSharedPointer<ResponseFromBot> rs)
 {
     qDebug() << "print_function:" << __FUNCTION__ << "rs->chat_id:" << rs->chat_id << Qt::endl;
     qDebug() << "print_function:" << __FUNCTION__ << "rs->response_text:" << rs->response_text.c_str() << Qt::endl;
-    botThreadManager->bot().getApi().sendMessage(rs->chat_id, "Знайдені збіги:\n" + rs->response_text);
+//    const auto maxLen = 4096;
+//    if (rs->response_text.size() > maxLen) {
+//        botThreadManager->bot().getApi().sendMessage(rs->chat_id, "Знайдені збіги:\n");
+//        for (size_t var = 0; var < rs->response_text.size(); var += maxLen) {
+//            std::cout << "print_function: " << __FUNCTION__ << " line: " << __LINE__ << " size: " << rs->response_text.substr(var, maxLen).size() << std::endl;
+//            QThread::msleep(200);
+//        }
+//        return;
+//    }
+//    botThreadManager->bot().getApi().sendMessage(rs->chat_id, "Знайдені збіги:\n" + rs->response_text);
+    try {
+        botThreadManager->bot().getApi().sendMessage(rs->chat_id, rs->response_text);
+    } catch (std::exception& e) {
+        std::cout << "print_function: " << __FUNCTION__ << " line: " << __LINE__ << " e.what(): " << e.what() << std::endl;
+    }
 }
 
 void BotMain::slotOnCommand(const TgBot::Message::Ptr message)
@@ -61,13 +80,13 @@ void BotMain::setSettings()
     connect(botThreadManager.get(), &BotThreadManager::signalOnCallbackQuery, this, std::bind(&BotMain::slotOnCallbackQueryWasWrite, this, std::placeholders::_1));
 }
 
-QString BotMain::getTokenFromFile()
+void BotMain::initDb()
 {
-#ifdef QT_DEBUG
-    const QJsonDocument doc = FileWorker::readFileJson("../../config.json");
-#else
-    const QJsonDocument doc = FileWorker::readFileJson("config.json");
-#endif
-    const QJsonObject obj = doc.object();
-    return obj.value("token").toString();
+    const auto dbFilePath = GlobalConfigInstance::instance().getGlobalConfig().dbFilePath;
+    const bool isOpened = DbManager::instance().init(dbFilePath);
+    if (isOpened && DbManager::instance().sizeDb() == 0) {
+        DbManager::instance().createTables();
+        petitionManager.reset(new PetitionManager());
+        petitionManager->fillDatabase();
+    }
 }

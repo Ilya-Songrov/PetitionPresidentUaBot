@@ -1,4 +1,4 @@
-#include "FileWorker.h"
+#include "FileWorker.hpp"
 
 
 bool FileWorker::readFileJson(QJsonDocument *doc, const QString &path)

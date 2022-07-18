@@ -1,7 +1,7 @@
 #include "BotThreadManager.hpp"
 
-BotThreadManager::BotThreadManager(const std::string& token, QObject* parent) : QThread{parent}
-  , _bot(token)
+BotThreadManager::BotThreadManager(const QString& token, QObject* parent) : QThread{parent}
+  , _bot(token.toStdString())
 {
     start(LowPriority);
 }
@@ -23,7 +23,7 @@ TgBot::Bot& BotThreadManager::bot()
 void BotThreadManager::run()
 {
     try {
-        _bot.getEvents().onCommand("start", std::bind(&BotThreadManager::slotOnCommand, this, std::placeholders::_1));
+        _bot.getEvents().onCommand("start", std::bind(&BotThreadManager::slotOnCommand, this, std::placeholders::_1, "start"));
         _bot.getEvents().onAnyMessage(std::bind(&BotThreadManager::slotOnAnyMessage, this, std::placeholders::_1));
         _bot.getEvents().onCallbackQuery(std::bind(&BotThreadManager::slotOnCallbackQuery, this, std::placeholders::_1));
 
@@ -40,9 +40,9 @@ void BotThreadManager::run()
     }
 }
 
-void BotThreadManager::slotOnCommand(const TgBot::Message::Ptr message)
+void BotThreadManager::slotOnCommand(const TgBot::Message::Ptr message, QString commandName)
 {
-    emit signalOnCommand(message);
+    emit signalOnCommand(message, commandName);
 }
 
 void BotThreadManager::slotOnAnyMessage(const TgBot::Message::Ptr message)
