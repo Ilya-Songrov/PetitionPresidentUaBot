@@ -1,0 +1,18 @@
+{
+  "log": {
+    "quantityFiles": 3,
+    "maxFileSizeMB": 1000,
+    "loggingType": "DEBUG",
+    "dirToSave": "../Log",
+    "loggingCategories": [
+      "first_category",
+      "second_category",
+      "third_category",
+      "fourth_category",
+      "fifth_category",
+      "db_category"
+    ]
+  },
+  "dbFilePath": "./DbPetitionPresidentUaBot.db",
+  "tokenFilePath": "../../token.txt"
+}
