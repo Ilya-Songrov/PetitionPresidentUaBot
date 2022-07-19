@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
 #ifdef QT_DEBUG
         const QString globalConfigFile = "../../PetitionPresidentUaBot/Data/GlobalConfig.json";
 #else
-        const QString globalConfigFile = "GlobalConfig.json";
+        const QString globalConfigFile = "./GlobalConfig.json";
 #endif
         GlobalConfigInstance::instance().loadConfig(globalConfigFile);
         const auto& globalConfig = GlobalConfigInstance::instance().getGlobalConfig();

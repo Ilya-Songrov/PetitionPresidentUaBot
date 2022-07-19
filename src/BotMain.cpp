@@ -16,7 +16,6 @@ void BotMain::startBot()
     //    });
 
     initDb();
-
     botThreadManager.reset(new BotThreadManager(GlobalConfigInstance::instance().getTokenFromFile()));
     petitionManager.reset(new PetitionManager());
     petitionManager->init();
@@ -68,7 +67,7 @@ void BotMain::slotOnCommand(const TgBot::Message::Ptr message)
 {
     qDebug() << "print_function:" << __FUNCTION__ << "message->chat->id:" << message->chat->id << Qt::endl;
     qDebug() << "print_function:" << __FUNCTION__ << "message->text:" << message->text.c_str() << Qt::endl;
-    botThreadManager->bot().getApi().sendMessage(message->chat->id, "Напишіть фамілію:");
+    botThreadManager->bot().getApi().sendMessage(message->chat->id, "Напишіть фамілію або ім'я:");
 }
 
 void BotMain::setSettings()

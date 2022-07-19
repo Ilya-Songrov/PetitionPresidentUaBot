@@ -78,6 +78,7 @@ void PetitionManager::emitResult()
 QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot& rq)
 {
     const int maxRsSize = 4096;
+    const QString dots = "...";
     const QString textQt = QString::fromStdString(rq.request_text);
     const QStringList list = textQt.split(' ');
     const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list);
@@ -91,7 +92,8 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
                 + ")"
                 + "\n"
                 ;
-        if (res.size() + vote.size() > maxRsSize) {
+        if (res.size() + vote.size() + dots.size() > maxRsSize) {
+            res += dots;
             break;
         }
         res += vote;
