@@ -11,7 +11,7 @@ class BotThreadManager : public QThread
 {
     Q_OBJECT
 public:
-    explicit BotThreadManager(const QString& token, QObject *parent = nullptr);
+    explicit BotThreadManager(const QString& token, const QStringList& commandsWithSlash, QObject *parent = nullptr);
     ~BotThreadManager();
 
     TgBot::Bot& bot();
@@ -33,4 +33,5 @@ private:
     TgBot::Bot _bot;
     QMutex mutex;
     QWaitCondition condition;
+    const QStringList _commandsWithSlash;
 };

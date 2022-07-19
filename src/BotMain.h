@@ -23,7 +23,7 @@ public:
     void startBot();
 
 private slots:
-    void slotOnCommand(const TgBot::Message::Ptr message);
+    void slotOnCommand(const TgBot::Message::Ptr message, QString commandName);
     void slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message);
     void slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callbackQuery);
     void slotListResultReady(QSharedPointer<ResponseFromBot> rs);
@@ -36,5 +36,9 @@ private:
     QScopedPointer<BotThreadManager> botThreadManager;
     QScopedPointer<PetitionManager> petitionManager;
     QThread threadPetitionManager;
+    const QString commandStart      = "/start";
+    const QString commandHelp       = "/help";
+    const QString commandSearch     = "/search";
+    const QString commandCountVotes = "/count_votes";
 };
 

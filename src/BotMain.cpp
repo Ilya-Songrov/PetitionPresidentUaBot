@@ -16,7 +16,9 @@ void BotMain::startBot()
     //    });
 
     initDb();
-    botThreadManager.reset(new BotThreadManager(GlobalConfigInstance::instance().getTokenFromFile()));
+    botThreadManager.reset(new BotThreadManager(GlobalConfigInstance::instance().getTokenFromFile(),
+                                                QStringList() << commandStart << commandHelp
+                                                << commandSearch << commandCountVotes));
     petitionManager.reset(new PetitionManager());
     petitionManager->init();
     setSettings();
@@ -24,38 +26,24 @@ void BotMain::startBot()
 
 void BotMain::slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message)
 {
-    qDebug() << "print_function:" << __FUNCTION__ << "message->chat->id:" << message->chat->id << Qt::endl;
-    qDebug() << "print_function:" << __FUNCTION__ << "message->text:" << message->text.c_str() << Qt::endl;
-    if (StringTools::startsWith(message->text, "/start")) {
+    qDebug() << "print_function:" << __FUNCTION__ << "line:" << __LINE__ << "message->text:" << message->text.c_str() << Qt::endl;
+    if (StringTools::startsWith(message->text, commandStart.toStdString())
+            || StringTools::startsWith(message->text, commandHelp.toStdString())
+            || StringTools::startsWith(message->text, commandSearch.toStdString())
+            ) {
         return;
     }
-    RequestToBot rq;
-    rq.chat_id      = message->chat->id;
-    rq.request_text = message->text.c_str();
-    petitionManager->checkRequestToBot(rq);
+    petitionManager->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::RequesttToSearch));
 }
 
 void BotMain::slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callbackQuery)
 {
-    qDebug() << "print_function:" << __FUNCTION__ << "callbackQuery->message->chat->id:" << callbackQuery->message->chat->id << Qt::endl;
-    qDebug() << "print_function:" << __FUNCTION__ << "callbackQuery->data:" << callbackQuery->data.c_str() << Qt::endl;
+    qDebug() << "print_function:" << __FUNCTION__ << "line:" << __LINE__ << "callbackQuery->data:" << callbackQuery->data.c_str() << Qt::endl;
     botThreadManager->bot().getApi().sendMessage(callbackQuery->id, "Your message is: " + callbackQuery->data);
 }
 
 void BotMain::slotListResultReady(QSharedPointer<ResponseFromBot> rs)
 {
-    qDebug() << "print_function:" << __FUNCTION__ << "rs->chat_id:" << rs->chat_id << Qt::endl;
-    qDebug() << "print_function:" << __FUNCTION__ << "rs->response_text:" << rs->response_text.c_str() << Qt::endl;
-//    const auto maxLen = 4096;
-//    if (rs->response_text.size() > maxLen) {
-//        botThreadManager->bot().getApi().sendMessage(rs->chat_id, "Знайдені збіги:\n");
-//        for (size_t var = 0; var < rs->response_text.size(); var += maxLen) {
-//            std::cout << "print_function: " << __FUNCTION__ << " line: " << __LINE__ << " size: " << rs->response_text.substr(var, maxLen).size() << std::endl;
-//            QThread::msleep(200);
-//        }
-//        return;
-//    }
-//    botThreadManager->bot().getApi().sendMessage(rs->chat_id, "Знайдені збіги:\n" + rs->response_text);
     try {
         botThreadManager->bot().getApi().sendMessage(rs->chat_id, rs->response_text);
     } catch (std::exception& e) {
@@ -63,18 +51,31 @@ void BotMain::slotListResultReady(QSharedPointer<ResponseFromBot> rs)
     }
 }
 
-void BotMain::slotOnCommand(const TgBot::Message::Ptr message)
+void BotMain::slotOnCommand(const TgBot::Message::Ptr message, QString commandName)
 {
-    qDebug() << "print_function:" << __FUNCTION__ << "message->chat->id:" << message->chat->id << Qt::endl;
-    qDebug() << "print_function:" << __FUNCTION__ << "message->text:" << message->text.c_str() << Qt::endl;
-    botThreadManager->bot().getApi().sendMessage(message->chat->id, "Напишіть фамілію або ім'я:");
+    qDebug() << "print_function:" << __FUNCTION__ << "line:" << __LINE__ << "message->text:" << message->text.c_str()
+             << "commandName:" << commandName << Qt::endl;
+    if (commandName == commandStart || commandName == commandHelp) {
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "❗️ Наша ціль - зібрати більше 1000000 підписів.\n"
+                                                                        "Це петиція про денонсування закону про ратифікацію Стабмульської конвенції.\n"
+                                                                        "Не полінінуйтесь прочитати і підписати.",
+                                                     false, 0, std::make_shared<TgBot::GenericReply>(), "Markdown", false);
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "https://petition.president.gov.ua/petition/146508");
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "Якщо ви підписали петицію, введіть свою фамілію чи ім'я:");
+    }
+    else if (commandName == commandSearch) {
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "Якщо ви підписали петицію, введіть свою фамілію чи ім'я:");
+    }
+    else if (commandName == commandCountVotes) {
+        petitionManager->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::CheckCountVotes));
+    }
 }
 
 void BotMain::setSettings()
 {
     connect(petitionManager.get(), &PetitionManager::signalListResultReady, this, &BotMain::slotListResultReady);
 
-    connect(botThreadManager.get(), &BotThreadManager::signalOnCommand, this, std::bind(&BotMain::slotOnCommand, this, std::placeholders::_1));
+    connect(botThreadManager.get(), &BotThreadManager::signalOnCommand, this, std::bind(&BotMain::slotOnCommand, this, std::placeholders::_1, std::placeholders::_2));
     connect(botThreadManager.get(), &BotThreadManager::signalOnAnyMessage, this, std::bind(&BotMain::slotOnAnyMessageWasWrite, this, std::placeholders::_1));
     connect(botThreadManager.get(), &BotThreadManager::signalOnCallbackQuery, this, std::bind(&BotMain::slotOnCallbackQueryWasWrite, this, std::placeholders::_1));
 }

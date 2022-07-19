@@ -68,6 +68,20 @@ void DbManager::saveDbPetitionVote(const DbPetitionVote& dbPetitionVote)
     DbWorker::instance().runQuery(query);
 }
 
+bool DbManager::dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote)
+{
+    const QString queryStr = "SELECT count(*) FROM "
+            + DbTables::votes
+            + " WHERE json_extract(data, '$.name') = '" + dbPetitionVote.name + "'"
+            + " AND json_extract(data, '$.date_str') = '" + dbPetitionVote.date_str + "'"
+            + " ;";
+    const QVector<QVariantList> vec = DbWorker::instance().getQueryResult(queryStr);
+    if (!vec.isEmpty() && !vec.first().isEmpty()) {
+        return vec.first().at(0).toInt() > 0;
+    }
+    return false;
+}
+
 int DbManager::getCountTotalVotes()
 {
     const QString queryStr = "SELECT count(*) FROM " + DbTables::votes + ";";
@@ -89,9 +103,9 @@ QVector<QSharedPointer<DbPetitionVote> > DbManager::findMatches(const QStringLis
             + DbTables::votes
             + " WHERE ";
     for (const QString& word : words) {
-        queryStr += " name LIKE '%" + word + "%' OR";
+        queryStr += " name LIKE '%" + word + "%' AND";
     }
-    queryStr.chop(2);
+    queryStr.chop(3);
     queryStr += " ;";
     const QVector<QVariantList> vecResVL = DbWorker::instance().getQueryResult(queryStr);
     QVector<QSharedPointer<DbPetitionVote> > vecResSP;

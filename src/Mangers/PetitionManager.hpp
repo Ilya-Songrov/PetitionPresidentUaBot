@@ -18,7 +18,7 @@ public:
     void fillDatabase();
 
 public slots:
-    void checkRequestToBot(const RequestToBot requestToBot);
+    void executeRequestToBot(const RequestToBot requestToBot);
 
 signals:
     void signalListResultReady(QSharedPointer<ResponseFromBot>);
@@ -26,7 +26,7 @@ signals:
 private slots:
     void slotPetitionVotesTotalReceived(int totalVotes);
     void slotPetitionVotesListReceived(QSharedPointer<PetitionVotes> votes);
-    void saveVotesListToDb(QSharedPointer<PetitionVotes> votes);
+    bool saveVotesListToDb(QSharedPointer<PetitionVotes> votes);
 
 private:
     void emitResult();

@@ -26,6 +26,7 @@ public:
     void createTables();
 
     void saveDbPetitionVote(const DbPetitionVote& dbPetitionVote);
+    bool dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote);
     int getCountTotalVotes();
     QVector<QSharedPointer<DbPetitionVote>> findMatches(const QStringList& words);
 

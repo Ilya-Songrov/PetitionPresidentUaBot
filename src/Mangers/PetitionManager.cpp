@@ -27,7 +27,7 @@ void PetitionManager::fillDatabase()
     init();
 }
 
-void PetitionManager::checkRequestToBot(const RequestToBot requestToBot)
+void PetitionManager::executeRequestToBot(const RequestToBot requestToBot)
 {
     if (mapRequestToBot.isEmpty()) {
         apiClientPetition->requestToGetPetitionVotesTotal();
@@ -37,7 +37,23 @@ void PetitionManager::checkRequestToBot(const RequestToBot requestToBot)
 
 void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
 {
+    QVector<std::int64_t> vecRemoveRs;
+    for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
+        if (rq.request_type == RequestToBot::CheckCountVotes) {
+            const std::string countRes = "Підписали: " + std::to_string(totalVotes);
+            QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, countRes));
+            emit signalListResultReady(rs);
+            vecRemoveRs.append(rq.chat_id);
+        }
+    }
+    mapRequestToBot.removeIf([&vecRemoveRs](std::pair<std::int64_t, const RequestToBot&> pair){ return vecRemoveRs.contains(pair.first); });
+    if (mapRequestToBot.isEmpty()) {
+        return;
+    }
+
     const int countTotalVotes = DbManager::instance().getCountTotalVotes();
+    qDebug() << "TotalVotes from server:" << totalVotes << Qt::endl;
+    qDebug() << "TotalVotes from db:" << countTotalVotes << Qt::endl;
     if (countTotalVotes >= totalVotes || totalVotes == -1) {
         emitResult();
         return;
@@ -52,18 +68,28 @@ void PetitionManager::slotPetitionVotesListReceived(QSharedPointer<PetitionVotes
         emitResult();
         return;
     }
-    saveVotesListToDb(votes);
+    const bool isDataExist = saveVotesListToDb(votes);
+    if (isDataExist) {
+        emitResult();
+        return;
+    }
     apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
 }
 
-void PetitionManager::saveVotesListToDb(QSharedPointer<PetitionVotes> votes)
+bool PetitionManager::saveVotesListToDb(QSharedPointer<PetitionVotes> votes)
 {
+    int countExistingVotes = 0;
     for (const PetitionVotesNode& node : votes->rows) {
         DbPetitionVote dbPetitionVote(node.number,
                                       node.name,
                                       node.date);
+        if (DbManager::instance().dbPetitionVoteExist(dbPetitionVote)) {
+            ++countExistingVotes;
+            continue;
+        }
         DbManager::instance().saveDbPetitionVote(dbPetitionVote);
     }
+    return countExistingVotes >= 30;
 }
 
 void PetitionManager::emitResult()
@@ -82,7 +108,7 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
     const QString textQt = QString::fromStdString(rq.request_text);
     const QStringList list = textQt.split(' ');
     const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list);
-    QString res = "Знайдені збіги:\n";
+    QString res = "👍 Ці люди молодці:\n";
     for (const QSharedPointer<DbPetitionVote>& dbPetitionVote : vecRes) {
         QString vote = dbPetitionVote->number_str
                 + " "
@@ -99,11 +125,9 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
         res += vote;
     }
     if (vecRes.isEmpty()) {
-        res = "Нічого не знайденно";
+        res = "Нічого не знайденно🤷‍";
     }
-    QSharedPointer<ResponseFromBot> rs(new ResponseFromBot);
-    rs->chat_id = rq.chat_id;
-    rs->response_text = res.toStdString();
+    QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, res.toStdString()));
     return rs;
 }
 
