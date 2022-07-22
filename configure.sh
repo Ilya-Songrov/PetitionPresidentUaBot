@@ -8,4 +8,4 @@ cd tgbot-cpp
 cmake .
 make -j4
 
-echo "Finished updating submodules"
+echo "Finished configuring"

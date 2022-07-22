@@ -54,7 +54,7 @@ void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
     const int countTotalVotes = DbManager::instance().getCountTotalVotes();
     qDebug() << "TotalVotes from server:" << totalVotes << Qt::endl;
     qDebug() << "TotalVotes from db:" << countTotalVotes << Qt::endl;
-    if (countTotalVotes >= totalVotes || totalVotes == -1) {
+    if (/*countTotalVotes >= totalVotes ||*/ totalVotes == -1) {
         emitResult();
         return;
     }
