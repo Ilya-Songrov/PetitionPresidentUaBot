@@ -5,6 +5,11 @@ BotThreadManager::BotThreadManager(const QString& token, const QStringList& comm
   , _commandsWithSlash(commandsWithSlash)
 {
     start(LowPriority);
+
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    qRegisterMetaType<TgBot::Message::Ptr>("TgBot::Message::Ptr");
+    qRegisterMetaType<TgBot::CallbackQuery::Ptr>("TgBot::CallbackQuery::Ptr");
+#endif
 }
 
 BotThreadManager::~BotThreadManager()
@@ -26,8 +31,14 @@ void BotThreadManager::run()
     while (true) {
         try {
             for (const QString& command : _commandsWithSlash) {
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+                QString commandCopy = command;
+                _bot.getEvents().onCommand(commandCopy.remove(0, 1).toStdString(),
+                                           std::bind(&BotThreadManager::slotOnCommand, this, std::placeholders::_1, command));
+#else
                 _bot.getEvents().onCommand(command.sliced(1, command.size() - 1).toStdString(),
                                            std::bind(&BotThreadManager::slotOnCommand, this, std::placeholders::_1, command));
+#endif
             }
             _bot.getEvents().onAnyMessage(std::bind(&BotThreadManager::slotOnAnyMessage, this, std::placeholders::_1));
             _bot.getEvents().onCallbackQuery(std::bind(&BotThreadManager::slotOnCallbackQuery, this, std::placeholders::_1));

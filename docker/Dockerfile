@@ -1,0 +1,21 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ 'Europe/Kiev'
+
+# Prepare
+RUN apt update -y && \
+    apt upgrade -y && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apt install curl -y && \
+    apt-get install libglib2.0-0 -y && \
+    apt-get clean
+
+WORKDIR /bot-folder-inside-docker/DeployKit_PetitionPresidentUaBot
+    
+COPY . /bot-folder-inside-docker
+
+# EXPOSE 8080
+
+ENTRYPOINT ["bash","./start_bot_docker.sh"]

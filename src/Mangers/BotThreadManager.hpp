@@ -4,6 +4,7 @@
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
+#include <QMetaType>
 
 #include "tgbot/tgbot.h"
 

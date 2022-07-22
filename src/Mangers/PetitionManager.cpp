@@ -46,7 +46,18 @@ void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
             vecRemoveRs.append(rq.chat_id);
         }
     }
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    for(auto it = mapRequestToBot.begin(); it != mapRequestToBot.end(); ) {
+        if(vecRemoveRs.contains(it.key())){
+            it = mapRequestToBot.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+#else
     mapRequestToBot.removeIf([&vecRemoveRs](std::pair<std::int64_t, const RequestToBot&> pair){ return vecRemoveRs.contains(pair.first); });
+#endif
     if (mapRequestToBot.isEmpty()) {
         return;
     }

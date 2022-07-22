@@ -30,6 +30,7 @@ void BotMain::slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message)
     if (StringTools::startsWith(message->text, commandStart.toStdString())
             || StringTools::startsWith(message->text, commandHelp.toStdString())
             || StringTools::startsWith(message->text, commandSearch.toStdString())
+            || StringTools::startsWith(message->text, commandCountVotes.toStdString())
             ) {
         return;
     }
