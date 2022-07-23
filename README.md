@@ -33,25 +33,30 @@ make
 
 ## Build and Run docker
 ```
-# clone repo
+### clone repo
 git clone --single-branch --branch master <this_repo>
 cd <this_repo>/docker/
-# download any version of build (for exemple 1.1.0)
+
+### download any version of build (for exemple 1.1.0)
 wget https://github.com/Ilya-Songrov/PetitionPresidentUaBot/releases/download/1.1.0/DeployKit_PetitionPresidentUaBot.zip
 unzip DeployKit_PetitionPresidentUaBot.zip
 rm DeployKit_PetitionPresidentUaBot.zip
-# copy needed files
+
+### copy needed files
 sudo apt install jq -y
 cp start_bot_docker.sh DeployKit_PetitionPresidentUaBot/
 cat ../Data/GlobalConfig.json | jq '.dbFilePath = "../db/DbPetitionPresidentUaBot.db"' > DeployKit_PetitionPresidentUaBot/GlobalConfig.json
 echo <your_token> > DeployKit_PetitionPresidentUaBot/token.txt
-# build docker image
+
+### build docker image
 sudo docker build  . --tag petition-president-ua-bot
 sudo docker image ls
-# copy image to remote host 
+
+### copy image to remote host 
 sudo docker save petition-president-ua-bot > ~/bot-image.tar
 scp ~/bot-image.tar <user>@<host>:~/
-# run docker on remote host
+
+### run docker on remote host
 ssh <user>@<host>
 sudo apt-get update -y
 sudo apt install docker.io -y
