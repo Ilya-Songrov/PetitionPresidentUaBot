@@ -69,6 +69,10 @@ void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
         emitResult();
         return;
     }
+    for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
+        QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, "Зачекайте будь ласка. Оновлюю базу..."));
+        emit signalListResultReady(rs);
+    }
     lastRqPage = 0;
     apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
 }

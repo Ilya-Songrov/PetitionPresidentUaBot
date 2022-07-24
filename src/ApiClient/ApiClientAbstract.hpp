@@ -33,5 +33,6 @@ protected:
 
 protected:
     QScopedPointer<QNetworkAccessManager> _mngr;
+    const int timeoutMsec;
 };
 

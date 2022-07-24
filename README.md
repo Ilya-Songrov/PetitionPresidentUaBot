@@ -61,8 +61,9 @@ ssh <user>@<host>
 sudo apt-get update -y
 sudo apt install docker.io -y
 sudo docker load -i ~/bot-image.tar
-mkdir ~/petition-president-ua-bot-db
-sudo docker run --volume ~/petition-president-ua-bot-db:/bot-folder-inside-docker/db --restart=always --detach petition-president-ua-bot 
+mkdir -p ~/petition-president-ua-bot/db
+mkdir -p ~/petition-president-ua-bot/logs
+sudo docker run --volume ~/petition-president-ua-bot/db:/bot-folder-inside-docker/db --volume ~/petition-president-ua-bot/logs:/bot-folder-inside-docker/logs --restart=always --detach petition-president-ua-bot 
 sudo docker ps
 ```
 

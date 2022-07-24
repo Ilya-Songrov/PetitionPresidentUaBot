@@ -53,6 +53,7 @@ void BotThreadManager::run()
             }
         } catch (std::exception& e) {
             qDebug("error: %s\n", e.what());
+            QThread::msleep(1000);
         }
     }
 }

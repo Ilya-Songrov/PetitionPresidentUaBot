@@ -102,7 +102,7 @@ void ApiClientPetition::createMngrObject()
 {
     _mngr->disconnect();
     _mngr.reset(new QNetworkAccessManager());
-    _mngr->setTransferTimeout(5000);
+    _mngr->setTransferTimeout(timeoutMsec);
     connect(_mngr.get(), &QNetworkAccessManager::sslErrors, this, &ApiClientAbstract::slotSSLErrorsGeneral);
     connect(_mngr.get(), &QNetworkAccessManager::finished, this, &ApiClientPetition::parseResponse);
 }

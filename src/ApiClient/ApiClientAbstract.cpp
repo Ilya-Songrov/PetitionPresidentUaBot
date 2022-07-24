@@ -3,6 +3,7 @@
 ApiClientAbstract::ApiClientAbstract(QObject *parent)
     : QObject{parent}
     , _mngr(new QNetworkAccessManager())
+    , timeoutMsec(300000)
 {
 
 }
@@ -58,7 +59,7 @@ void ApiClientAbstract::printRequest(const QNetworkRequest& request, const QByte
 
 QByteArray ApiClientAbstract::parseNetworkReply(QNetworkReply* reply, const QLoggingCategory& category)
 {
-    reply->waitForReadyRead(30000);
+    reply->waitForReadyRead(timeoutMsec);
     const QNetworkReply::NetworkError networkError = reply->error();
     const QUrl urlReply = reply->url();
     const QByteArray arrReply = reply->readAll();
