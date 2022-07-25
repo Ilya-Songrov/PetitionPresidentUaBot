@@ -45,8 +45,11 @@ rm DeployKit_PetitionPresidentUaBot.zip
 ### copy needed files
 sudo apt install jq -y
 cp start_bot_docker.sh DeployKit_PetitionPresidentUaBot/
-cat ../Data/GlobalConfig.json | jq '.dbFilePath = "../db/DbPetitionPresidentUaBot.db"' > DeployKit_PetitionPresidentUaBot/GlobalConfig.json
-echo <your_token> > DeployKit_PetitionPresidentUaBot/token.txt
+cp ../Data/GlobalConfig.json DeployKit_PetitionPresidentUaBot/
+cat DeployKit_PetitionPresidentUaBot/GlobalConfig.json | jq '.log.dirToSave = "../logs"' | sponge DeployKit_PetitionPresidentUaBot/GlobalConfig.json
+cat DeployKit_PetitionPresidentUaBot/GlobalConfig.json | jq '.dbFilePath = "../db/DbPetitionPresidentUaBot.db"' | sponge DeployKit_PetitionPresidentUaBot/GlobalConfig.json
+cat DeployKit_PetitionPresidentUaBot/GlobalConfig.json | jq '.tokenFilePath = "./token.txt"' | sponge DeployKit_PetitionPresidentUaBot/GlobalConfig.json
+echo "<your_token>" > DeployKit_PetitionPresidentUaBot/token.txt
 
 ### build docker image
 sudo docker build  . --tag petition-president-ua-bot
