@@ -21,10 +21,8 @@ sudo apt-get install curl
 sudo apt-get install libcurl4-openssl-dev
 
 git clone <this_repo>
-cd <this_repo>
-git checkout master
-git pull
-./configure
+cd PetitionPresidentUaBot
+./configure.sh
 mkdir build
 cd build
 qmake ..
