@@ -1,0 +1,63 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ 'Europe/Kiev'
+
+# Prepare
+RUN \
+    apt update -y && \
+    apt upgrade -y && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone && \
+    apt -y install \
+        build-essential libfontconfig1 mesa-common-dev libusb-1.0-0-dev \
+        binutils libboost-system-dev libcurl4-openssl-dev \
+        libglu1-mesa-dev libgl1-mesa-dev wget cmake bash curl \
+        freeglut3-dev gdb git iputils-ping libwayland-dev \
+        libjpeg-dev libmysqlclient-dev libnss3-dev libopus-dev \
+        libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
+        libgstreamer-plugins-good1.0-dev libgstreamer-plugins-bad1.0-dev \
+        libpng-dev libsqlite3-dev libx11-xcb-dev libxcb-xinerama0-dev \
+        libxcb-xkb-dev libxcb1-dev libxcursor-dev libxi-dev libxml2-dev libxrender-dev \
+        libxslt-dev lzip nano perl python valgrind zlib1g-dev libxrandr-dev \
+        libssl-dev linux-headers-generic libxdamage-dev libxss-dev libdbus-1-dev \
+        libcups2-dev libdrm-dev libegl1-mesa-dev libpci-dev libevent-dev \
+        libjpeg-turbo8 libjpeg-turbo8-dev libicu-dev libgles2-mesa libgles2-mesa-dev \
+        libogg-dev libfreetype6-dev libxcomposite-dev libfontconfig1-dev libcap-dev \
+        libvorbis-dev bison gperf bzip2 flex ruby libasound2-dev \
+        libpulse-dev libudev-dev nodejs libxtst-dev gyp ninja-build \
+        '^libxcb.*-dev' libxkbcommon-dev libxkbcommon-x11-dev libgl-dev && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt install --reinstall libxcb-xinerama0 -y && \
+    wget https://github.com/QuasarApp/CQtDeployer/releases/download/v1.5.4.17/CQtDeployer_1.5.4.17_Linux_x86_64.deb && \
+    apt install ./CQtDeployer_1.5.4.17_Linux_x86_64.deb && \
+    apt -y autoremove && \
+    apt -y autoclean && \
+    apt -y clean && \
+    rm -rf /var/lib/apt/lists/*
+    
+    
+# Choose Qt version
+ENV QT_VERSION_MAJOR 5.15
+ENV QT_VERSION 5.15.5
+
+
+RUN \
+    cd /opt && \
+    curl --show-error --location http://download.qt.io/official_releases/qt/"$QT_VERSION_MAJOR"/"$QT_VERSION"/single/qt-everywhere-opensource-src-"$QT_VERSION".tar.xz --output qt-everywhere-opensource-src-"$QT_VERSION".tar.xz && \
+    tar xf qt-everywhere-opensource-src-"$QT_VERSION".tar.xz --one-top-level && \
+    rm qt-everywhere-opensource-src-"$QT_VERSION".tar.xz
+    
+RUN \
+    cd /opt/qt-everywhere-opensource-src-"$QT_VERSION"/qt-everywhere-src-"$QT_VERSION" && \
+    ./configure -opensource -confirm-license -release -nomake tests -nomake examples -recheck && \
+    make -j $(($(nproc)+4)) && \
+    make install && \
+    cd /opt && \
+    rm -rf /opt/qt-everywhere-opensource-src-"$QT_VERSION"
+
+
+# add qmake to PATH
+ENV PATH="${PATH}:/usr/local/Qt-${QT_VERSION}/bin"
+ENTRYPOINT ["/bin/bash"]
+
