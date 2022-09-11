@@ -8,6 +8,6 @@
 3. C++14 library for Telegram bot API https://github.com/reo7sp/tgbot-cpp
 
 ## How to build and run
-- Read to build: [build-in-docker](/docker/build-in-docker.md)
-- Read to build: [run-in-docker](/docker/run-in-docker.md)
+- Read to build: [build-in-docker](/docs/build-in-docker.md)
+- Read to build: [run-in-docker](/docs/run-in-docker.md)
 
