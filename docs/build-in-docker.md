@@ -7,7 +7,7 @@ mkdir -p $ROOT_FOLDER
 # build qt in docker
 cd $ROOT_FOLDER
 git clone --recurse-submodules <this_repo>
-cd $ROOT_FOLDER/PetitionPresidentUaBot/docker
+cd $ROOT_FOLDER/PetitionPresidentUaBot/scripts
 sudo docker build . \
     --force-rm \
     --file ./DockerfileQtInDockerUbuntu20 \
@@ -27,5 +27,6 @@ mkdir build
 cd build
 qmake ..
 make
+exit
 ```
 
