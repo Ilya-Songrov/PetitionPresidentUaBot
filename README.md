@@ -1,6 +1,6 @@
 ## Telegram Bot
 
-![Screen Shot](md/MergedDocument.jpg)
+![Screen Shot](md/MergedDocument.png)
 
 ## How to build and run
 - Read to build: [build-in-docker](/docs/build-in-docker.md)
