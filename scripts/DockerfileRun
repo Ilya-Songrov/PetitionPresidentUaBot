@@ -18,4 +18,4 @@ COPY . /bot-folder-inside-docker
 
 # EXPOSE 8080
 
-ENTRYPOINT ["bash","./start_bot_docker.sh"]
+ENTRYPOINT ["bash","./start_bot_in_docker.sh"]

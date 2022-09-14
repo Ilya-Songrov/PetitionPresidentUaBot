@@ -2,7 +2,7 @@
 ```
 # clone repo
 git clone --single-branch --branch master <this_repo>
-cd <this_repo>/docker/
+cd <this_repo>/scripts/
 DOCKER_FOLDER_ROOT=$PWD
 
 # download any version of build (for exemple 1.1.0)
