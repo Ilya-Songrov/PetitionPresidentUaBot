@@ -125,9 +125,7 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
     const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list);
     QString res = "👍 Ці люди молодці:\n";
     for (const QSharedPointer<DbPetitionVote>& dbPetitionVote : vecRes) {
-        QString vote = dbPetitionVote->number_str
-                + " "
-                + dbPetitionVote->name
+        QString vote = dbPetitionVote->name
                 + " ("
                 + dbPetitionVote->date_str
                 + ")"
