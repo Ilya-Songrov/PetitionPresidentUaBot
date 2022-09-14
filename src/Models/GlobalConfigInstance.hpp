@@ -30,6 +30,10 @@ public:
         }
         return token;
     }
+    static void printConging()
+    {
+        qDebug() << "GlobalConfig:" << qPrintable(_gc.toRawJson());
+    }
 
 private:
     Q_DISABLE_COPY_MOVE(GlobalConfigInstance)

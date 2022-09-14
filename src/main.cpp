@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
 {
     try {
         QCoreApplication app(argc, argv);
-        QCoreApplication::setApplicationVersion("1.2.1");
+        QCoreApplication::setApplicationVersion("1.2.2");
 
 #ifdef QT_DEBUG
         const QString globalConfigFile = "../../PetitionPresidentUaBot/Data/GlobalConfig.json";
@@ -15,6 +15,7 @@ int main(int argc, char *argv[])
         const QString globalConfigFile = "./GlobalConfig.json";
 #endif
         GlobalConfigInstance::instance().loadConfig(globalConfigFile);
+        GlobalConfigInstance::instance().printConging();
         const auto& globalConfig = GlobalConfigInstance::instance().getGlobalConfig();
         LogManager::init(globalConfig.log.quantityFiles,
                          globalConfig.log.maxFileSizeMB,
