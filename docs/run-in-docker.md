@@ -42,6 +42,8 @@ sudo docker run \
     --detach \
     petition-president-ua-bot
 sudo docker ps
+# sudo docker ps --latest # show the latest created container (includes all states)
+# sudo docker rm -f <container_id> # to remove other running instances
 ```
 
 ## Run app in docker on remote host
