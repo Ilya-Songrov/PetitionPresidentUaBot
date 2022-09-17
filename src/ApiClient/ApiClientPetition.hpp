@@ -30,5 +30,6 @@ private:
 private:
     const QString _urlPetitionVotesTotal;
     const QString _urlPetitionVotesList;
+    bool votingWasEnded;
 };
 

@@ -4,6 +4,7 @@ ApiClientPetition::ApiClientPetition(QObject* parent)
     : ApiClientAbstract{parent}
     , _urlPetitionVotesTotal("https://petition.president.gov.ua/petition/146508")
     , _urlPetitionVotesList("https://petition.president.gov.ua/petition/146508/votes")
+    , votingWasEnded(false)
 {
 
 }
@@ -15,6 +16,11 @@ void ApiClientPetition::init()
 
 void ApiClientPetition::requestToGetPetitionVotesTotal()
 {
+    if (votingWasEnded) {
+        qDebug() << "VotingWasEnded: " << votingWasEnded << Qt::endl;
+        QTimer::singleShot(0, this, std::bind(&ApiClientPetition::signalPetitionVotesTotalReceived, this, -2));
+        return;
+    }
     QNetworkRequest request(_urlPetitionVotesTotal);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     printRequest(request, "", second_category);
@@ -39,6 +45,7 @@ void ApiClientPetition::parseResponse(QNetworkReply* reply)
     }
 
     if (url == _urlPetitionVotesTotal) {
+        votingWasEnded = arrReply.contains("<div class=\"votes_progress_label\"><span>Збір підписів завершено</span></div>");
         static QRegularExpression dataVotes(" data-votes=\"[0-9]*\">");
         QRegularExpressionMatch matchDataVotes = dataVotes.match(arrReply);
         QString totalNumStr;

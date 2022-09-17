@@ -33,14 +33,20 @@ void PetitionManager::executeRequestToBot(const RequestToBot requestToBot)
         apiClientPetition->requestToGetPetitionVotesTotal();
     }
     mapRequestToBot.insert(requestToBot.chat_id, requestToBot);
+    QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(requestToBot.chat_id, "Зачекайте будь ласка. Оновлюю базу..."));
+    emit signalListResultReady(rs);
 }
 
-void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
+void PetitionManager::slotPetitionVotesTotalReceived(int totalVotesFromServer)
 {
+    const int totalVotesFromDb = DbManager::instance().getCountTotalVotes();
+    qDebug() << "TotalVotes from server:" << totalVotesFromServer << Qt::endl;
+    qDebug() << "TotalVotes from db:" << totalVotesFromDb << Qt::endl;
+    totalVotesFromServer = totalVotesFromServer == -2 ? totalVotesFromDb : totalVotesFromServer;
     QVector<std::int64_t> vecRemoveRs;
     for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
         if (rq.request_type == RequestToBot::CheckCountVotes) {
-            const std::string countRes = "Підписали: " + std::to_string(totalVotes);
+            const std::string countRes = "Підписали: " + std::to_string(totalVotesFromServer);
             QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, countRes));
             emit signalListResultReady(rs);
             vecRemoveRs.append(rq.chat_id);
@@ -62,16 +68,11 @@ void PetitionManager::slotPetitionVotesTotalReceived(int totalVotes)
         return;
     }
 
-    const int countTotalVotes = DbManager::instance().getCountTotalVotes();
-    qDebug() << "TotalVotes from server:" << totalVotes << Qt::endl;
-    qDebug() << "TotalVotes from db:" << countTotalVotes << Qt::endl;
-    if (/*countTotalVotes >= totalVotes ||*/ totalVotes == -1) {
+    if (totalVotesFromDb >= totalVotesFromServer
+            || totalVotesFromServer == -1
+            || totalVotesFromServer == -2) {
         emitResult();
         return;
-    }
-    for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
-        QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, "Зачекайте будь ласка. Оновлюю базу..."));
-        emit signalListResultReady(rs);
     }
     lastRqPage = 0;
     apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);

@@ -24,7 +24,7 @@ signals:
     void signalListResultReady(QSharedPointer<ResponseFromBot>);
 
 private slots:
-    void slotPetitionVotesTotalReceived(int totalVotes);
+    void slotPetitionVotesTotalReceived(int totalVotesFromServer);
     void slotPetitionVotesListReceived(QSharedPointer<PetitionVotes> votes);
     bool saveVotesListToDb(QSharedPointer<PetitionVotes> votes);
 
