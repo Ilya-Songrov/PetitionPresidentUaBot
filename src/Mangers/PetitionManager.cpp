@@ -42,7 +42,7 @@ void PetitionManager::slotPetitionVotesTotalReceived(int totalVotesFromServer)
     const int totalVotesFromDb = DbManager::instance().getCountTotalVotes();
     qDebug() << "TotalVotes from server:" << totalVotesFromServer << Qt::endl;
     qDebug() << "TotalVotes from db:" << totalVotesFromDb << Qt::endl;
-    totalVotesFromServer = totalVotesFromServer == -2 ? totalVotesFromDb : totalVotesFromServer;
+    totalVotesFromServer = totalVotesFromServer == -2 ? apiClientPetition->getLastTotalPetitionVotes() : totalVotesFromServer;
     QVector<std::int64_t> vecRemoveRs;
     for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
         if (rq.request_type == RequestToBot::CheckCountVotes) {

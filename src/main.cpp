@@ -7,7 +7,7 @@ int main(int argc, char *argv[])
 {
     try {
         QCoreApplication app(argc, argv);
-        QCoreApplication::setApplicationVersion("1.3.0");
+        QCoreApplication::setApplicationVersion("1.3.1");
 
 #ifdef QT_DEBUG
         const QString globalConfigFile = "../../PetitionPresidentUaBot/Data/GlobalConfig.json";

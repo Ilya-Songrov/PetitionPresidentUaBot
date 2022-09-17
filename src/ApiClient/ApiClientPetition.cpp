@@ -5,6 +5,7 @@ ApiClientPetition::ApiClientPetition(QObject* parent)
     , _urlPetitionVotesTotal("https://petition.president.gov.ua/petition/146508")
     , _urlPetitionVotesList("https://petition.president.gov.ua/petition/146508/votes")
     , votingWasEnded(false)
+    , lastTotalPetitionVotes(-1)
 {
 
 }
@@ -35,6 +36,11 @@ void ApiClientPetition::requestToGetPetitionVotesList(const int page)
     _mngr->get(request);
 }
 
+int ApiClientPetition::getLastTotalPetitionVotes() const
+{
+    return lastTotalPetitionVotes;
+}
+
 void ApiClientPetition::parseResponse(QNetworkReply* reply)
 {
     const QString url = reply->url().toString();
@@ -45,7 +51,6 @@ void ApiClientPetition::parseResponse(QNetworkReply* reply)
     }
 
     if (url == _urlPetitionVotesTotal) {
-        votingWasEnded = arrReply.contains("<div class=\"votes_progress_label\"><span>Збір підписів завершено</span></div>");
         static QRegularExpression dataVotes(" data-votes=\"[0-9]*\">");
         QRegularExpressionMatch matchDataVotes = dataVotes.match(arrReply);
         QString totalNumStr;
@@ -58,8 +63,10 @@ void ApiClientPetition::parseResponse(QNetworkReply* reply)
             totalNumStr = "-1";
             qCWarning(first_category) << "error while extract total votes" << Qt::endl;
         }
+        votingWasEnded = arrReply.contains("<div class=\"votes_progress_label\"><span>Збір підписів завершено</span></div>");
+        lastTotalPetitionVotes = totalNumStr.toInt();
 
-        emit signalPetitionVotesTotalReceived(totalNumStr.toInt());
+        emit signalPetitionVotesTotalReceived(lastTotalPetitionVotes);
     }
     else if(url.contains(_urlPetitionVotesList)){
         QSharedPointer<PetitionVotes> petitionVotes = parseXmlRespnse(arrReply);

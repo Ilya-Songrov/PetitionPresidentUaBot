@@ -17,6 +17,8 @@ public:
     void requestToGetPetitionVotesTotal();
     void requestToGetPetitionVotesList(const int page);
 
+    int getLastTotalPetitionVotes() const;
+
 signals:
     void signalPetitionVotesTotalReceived(int totalVotes);
     void signalPetitionVotesListReceived(QSharedPointer<PetitionVotes>);
@@ -31,5 +33,6 @@ private:
     const QString _urlPetitionVotesTotal;
     const QString _urlPetitionVotesList;
     bool votingWasEnded;
+    int lastTotalPetitionVotes;
 };
 
