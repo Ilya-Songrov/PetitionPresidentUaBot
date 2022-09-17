@@ -5,9 +5,9 @@ git clone --single-branch --branch master <this_repo>
 cd <this_repo>/scripts/
 SCRIPT_FOLDER_ROOT=$PWD
 
-# download any version of build (for exemple 1.1.0)
+# download any version of build (for exemple 1.3.1)
 cd $SCRIPT_FOLDER_ROOT
-wget https://github.com/Ilya-Songrov/PetitionPresidentUaBot/releases/download/1.2.0/DeployKit_PetitionPresidentUaBot.zip
+wget https://github.com/Ilya-Songrov/PetitionPresidentUaBot/releases/download/1.3.1/DeployKit_PetitionPresidentUaBot.zip
 unzip DeployKit_PetitionPresidentUaBot.zip
 rm DeployKit_PetitionPresidentUaBot.zip
 
