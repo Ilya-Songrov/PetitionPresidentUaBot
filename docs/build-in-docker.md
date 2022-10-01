@@ -9,6 +9,7 @@ cd $ROOT_FOLDER
 git clone --recurse-submodules <this_repo>
 cd $ROOT_FOLDER/PetitionPresidentUaBot/scripts
 sudo docker build . \
+    --no-cache \
     --force-rm \
     --file ./DockerfileQtInDockerUbuntu20 \
     --tag qt-in-docker-ubunut20-04 

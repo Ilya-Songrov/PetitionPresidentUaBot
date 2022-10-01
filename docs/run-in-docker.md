@@ -25,9 +25,10 @@ echo '<your_token>' > $DEPLOY_KIT_ROOT/token.txt
 # build docker image
 cd $SCRIPT_FOLDER_ROOT
 sudo docker build  . \
-	--force-rm \
-	--file DockerfileRun \
-	--tag petition-president-ua-bot
+    --no-cache \
+    --force-rm \
+    --file DockerfileRun \
+    --tag petition-president-ua-bot
 sudo docker image ls
 
 # run docker on local host
