@@ -2,7 +2,17 @@
 
 ![Screen Shot](md/MergedDocument.png)
 
-## How to build and run
+## How to build on pc
+```
+git clone --recurse-submodules https://github.com/Ilya-Songrov/PetitionPresidentUaBot.git
+cd PetitionPresidentUaBot
+./configure.sh
+mkdir build && cd build
+qmake ..
+make 
+```
+
+## How to build and run in docker
 - Read to build: [build-in-docker](/docs/build-in-docker.md)
 - Read to build: [run-in-docker](/docs/run-in-docker.md)
 

@@ -1,8 +1,13 @@
 ## Run app in docker local host
 ```
+# variables
+ROOT_FOLDER=~/Downloads/deleteme/PetitionPresidentUaBot
+mkdir -p $ROOT_FOLDER
+
 # clone repo
-git clone --single-branch --branch master <this_repo>
-cd <this_repo>/scripts/
+cd $ROOT_FOLDER
+git clone --single-branch --branch master https://github.com/Ilya-Songrov/PetitionPresidentUaBot.git
+cd $ROOT_FOLDER/PetitionPresidentUaBot/scripts/
 SCRIPT_FOLDER_ROOT=$PWD
 
 # download any version of build (for exemple 2.0.0)
@@ -32,13 +37,13 @@ sudo docker build  . \
 sudo docker image ls
 
 # run docker on local host
-mkdir -p ~/petition-president-ua-bot/db
-mkdir -p ~/petition-president-ua-bot/logs
+mkdir -p $ROOT_FOLDER/petition-president-ua-bot/db
+mkdir -p $ROOT_FOLDER/petition-president-ua-bot/logs
 # sudo docker ps # show all running dockers
 # sudo docker stop <container-id> # stop old version
 sudo docker run --detach \
-    --volume ~/petition-president-ua-bot/db:/bot-folder-inside-docker/db \
-    --volume ~/petition-president-ua-bot/logs:/bot-folder-inside-docker/logs \
+    --volume $ROOT_FOLDER/petition-president-ua-bot/db:/bot-folder-inside-docker/db \
+    --volume $ROOT_FOLDER/petition-president-ua-bot/logs:/bot-folder-inside-docker/logs \
     --restart=always \
     petition-president-ua-bot:2.0.0
 sudo docker ps
@@ -49,8 +54,8 @@ sudo docker ps
 ## Run app in docker on remote host
 ```
 # copy image to remote host 
-sudo docker save petition-president-ua-bot > ~/bot-image.tar
-scp ~/bot-image.tar <user>@<host>:~/
+sudo docker save petition-president-ua-bot:2.0.0 > $ROOT_FOLDER/bot-image.tar
+scp $ROOT_FOLDER/bot-image.tar <user>@<host>:~/
 
 # run docker on remote host
 ssh <user>@<host>
