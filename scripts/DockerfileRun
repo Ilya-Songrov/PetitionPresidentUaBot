@@ -17,6 +17,5 @@ WORKDIR /bot-folder-inside-docker/DeployKit_PetitionPresidentUaBot
     
 COPY . /bot-folder-inside-docker
 
-# EXPOSE 8080
-
-ENTRYPOINT ["bash","./start_bot_in_docker.sh"]
+ENTRYPOINT []
+CMD ["bash","./start_bot_in_docker.sh"]

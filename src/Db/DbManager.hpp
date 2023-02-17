@@ -6,7 +6,7 @@
 #include <QSqlRecord>
 #include <QSqlError>
 
-#include "DbWorker.hpp"
+#include "DbAccessor.hpp"
 #include "DbTables.hpp"
 #include "LogManager.hpp"
 #include "DbPetitionVote.hpp"
@@ -25,10 +25,16 @@ public:
 
     void createTables();
 
-    void saveDbPetitionVote(const DbPetitionVote& dbPetitionVote);
-    bool dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote);
-    int getCountTotalVotes();
-    QVector<QSharedPointer<DbPetitionVote>> findMatches(const QStringList& words);
+    void insertOrUpdatePetitionUrlForChatId(const std::string& petitionUrl, const std::int64_t chat_id);
+    QString getPetitionUrlForChatId(const std::int64_t chat_id);
+
+    void insertOrReplaceDefaultPetitionUrl(const std::string& petitionUrl);
+    QString getDefaultPetitionUrl();
+
+    void saveDbPetitionVote(const DbPetitionVote& dbPetitionVote, const QString& petition_url);
+    bool dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote, const QString& petition_url);
+    int getCountTotalVotes(const QString& petition_url);
+    QVector<QSharedPointer<DbPetitionVote>> findMatches(const QStringList& words, const QString& petition_url);
 
 private:
     Q_DISABLE_COPY_MOVE(DbManager)

@@ -6,7 +6,7 @@ mkdir -p $ROOT_FOLDER
 
 # build qt in docker
 cd $ROOT_FOLDER
-git clone --recurse-submodules <this_repo>
+git clone --recurse-submodules https://github.com/Ilya-Songrov/PetitionPresidentUaBot.git
 cd $ROOT_FOLDER/PetitionPresidentUaBot/scripts
 sudo docker build . \
     --no-cache \
@@ -16,18 +16,17 @@ sudo docker build . \
 
 
 # build app
+cd $ROOT_FOLDER
 sudo docker run \
     --interactive --tty \
     --volume $ROOT_FOLDER/PetitionPresidentUaBot:/folder-inside-docker/app-folder \
-    qt-in-docker-ubunut20-04 
-
-# run command in docker
-cd /folder-inside-docker/app-folder
-./configure.sh
-mkdir build
-cd build
-qmake ..
-make
-exit
+    qt-in-docker-ubunut20-04 \
+        -c 'cd /folder-inside-docker/app-folder && \
+        ./configure.sh && \
+        mkdir build && \
+        cd build && \
+        qmake .. && \
+        make && \
+        exit'
 ```
 

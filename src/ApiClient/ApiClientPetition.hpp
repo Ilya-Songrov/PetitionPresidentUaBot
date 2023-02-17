@@ -10,7 +10,7 @@ class ApiClientPetition : public ApiClientAbstract
 {
     Q_OBJECT
 public:
-    explicit ApiClientPetition(QObject *parent = nullptr);
+    explicit ApiClientPetition(const QString& petitionUrl, QObject *parent = nullptr);
 
     void init();
 
@@ -18,10 +18,11 @@ public:
     void requestToGetPetitionVotesList(const int page);
 
     int getLastTotalPetitionVotes() const;
+    QString getPetitionUrl() const;
 
 signals:
     void signalPetitionVotesTotalReceived(int totalVotes);
-    void signalPetitionVotesListReceived(QSharedPointer<PetitionVotes>);
+    void signalPetitionVotesListReceived(QSharedPointer<PetitionVotes>, int page);
 
 private:
     void parseResponse(QNetworkReply *reply);

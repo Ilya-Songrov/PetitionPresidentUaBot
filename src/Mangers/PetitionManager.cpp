@@ -1,16 +1,16 @@
 #include "PetitionManager.hpp"
+#include "DbManager.hpp"
 
 PetitionManager::PetitionManager(QObject *parent)
     : QObject{parent}
     , apiClientPetition(nullptr)
-    , lastRqPage(0)
 {
 
 }
 
-void PetitionManager::init()
+void PetitionManager::init(const QString &petitionUrl)
 {
-    apiClientPetition.reset(new ApiClientPetition());
+    apiClientPetition.reset(new ApiClientPetition(petitionUrl));
     apiClientPetition->init();
     connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesTotalReceived,
             this, &PetitionManager::slotPetitionVotesTotalReceived);
@@ -18,78 +18,70 @@ void PetitionManager::init()
             this, &PetitionManager::slotPetitionVotesListReceived);
 
     mapRequestToBot.clear();
-    lastRqPage = 0;
-}
-
-void PetitionManager::fillDatabase()
-{
-    runfillingDatabase();
-    init();
+    listRequestTypeInProgress.clear();
 }
 
 void PetitionManager::executeRequestToBot(const RequestToBot requestToBot)
 {
-    if (mapRequestToBot.isEmpty()) {
+    if (requestToBot.request_type == RequestToBot::RequestType::RequestToSearch && !listRequestTypeInProgress.contains(RequestToBot::RequestType::RequestToSearch)){
+        apiClientPetition->requestToGetPetitionVotesList(1); //NOTE: The last person to vote is on the first page
+        listRequestTypeInProgress.append(RequestToBot::RequestType::RequestToSearch);
+    }
+    else if (requestToBot.request_type == RequestToBot::RequestType::CheckCountVotes && !listRequestTypeInProgress.contains(RequestToBot::RequestType::CheckCountVotes)){
         apiClientPetition->requestToGetPetitionVotesTotal();
+        listRequestTypeInProgress.append(RequestToBot::RequestType::CheckCountVotes);
+    }
+    else if (requestToBot.request_type == RequestToBot::RequestType::GetDescription){
+        apiClientPetition->requestToGetPetitionVotesTotal();
+        QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(requestToBot.chat_id, "Ви слідкуєте за наступною петицією: " + apiClientPetition->getPetitionUrl().toStdString()));
+        emit signalResponseFromBotReady(rs);
+        return;
     }
     mapRequestToBot.insert(requestToBot.chat_id, requestToBot);
     QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(requestToBot.chat_id, "Зачекайте будь ласка. Оновлюю базу..."));
-    emit signalListResultReady(rs);
+    emit signalResponseFromBotReady(rs);
 }
 
 void PetitionManager::slotPetitionVotesTotalReceived(int totalVotesFromServer)
 {
-    const int totalVotesFromDb = DbManager::instance().getCountTotalVotes();
-    qDebug() << "TotalVotes from server:" << totalVotesFromServer << Qt::endl;
-    qDebug() << "TotalVotes from db:" << totalVotesFromDb << Qt::endl;
-    totalVotesFromServer = totalVotesFromServer == -2 ? apiClientPetition->getLastTotalPetitionVotes() : totalVotesFromServer;
-    QVector<std::int64_t> vecRemoveRs;
+    const int totalVotesFromDb = DbManager::instance().getCountTotalVotes(apiClientPetition->getPetitionUrl());
+    qDebug() << "TotalVotes from server:" << totalVotesFromServer
+             << Qt::endl
+             << "TotalVotes from db:" << totalVotesFromDb
+             << Qt::endl;
+    const int totalVotesToReturn = totalVotesFromServer == -2 ? apiClientPetition->getLastTotalPetitionVotes() : totalVotesFromServer;
+    QVector<std::int64_t> vecChatIds;
     for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
-        if (rq.request_type == RequestToBot::CheckCountVotes) {
-            const std::string countRes = "Підписали: " + std::to_string(totalVotesFromServer);
+        if (rq.request_type == RequestToBot::RequestType::CheckCountVotes) {
+            const std::string countRes = "Підписали: " + std::to_string(totalVotesToReturn);
             QSharedPointer<ResponseFromBot> rs(new ResponseFromBot(rq.chat_id, countRes));
-            emit signalListResultReady(rs);
-            vecRemoveRs.append(rq.chat_id);
+            emit signalResponseFromBotReady(rs);
+            vecChatIds.append(rq.chat_id);
         }
     }
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    for(auto it = mapRequestToBot.begin(); it != mapRequestToBot.end(); ) {
-        if(vecRemoveRs.contains(it.key())){
-            it = mapRequestToBot.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
-#else
-    mapRequestToBot.removeIf([&vecRemoveRs](std::pair<std::int64_t, const RequestToBot&> pair){ return vecRemoveRs.contains(pair.first); });
-#endif
-    if (mapRequestToBot.isEmpty()) {
-        return;
-    }
-
-    if (totalVotesFromDb >= totalVotesFromServer
-            || totalVotesFromServer == -1
-            || totalVotesFromServer == -2) {
-        emitResult();
-        return;
-    }
-    lastRqPage = 0;
-    apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
+    removeChatIdsFromMapRequestToBot(vecChatIds);
+    listRequestTypeInProgress.removeAll(RequestToBot::RequestType::CheckCountVotes);
 }
 
-void PetitionManager::slotPetitionVotesListReceived(QSharedPointer<PetitionVotes> votes)
+void PetitionManager::slotPetitionVotesListReceived(QSharedPointer<PetitionVotes> votes, int page)
 {
-    if (votes->rows.isEmpty()) {
-        emitResult();
+    bool isEmitResult = votes->rows.isEmpty();
+    if (!votes->rows.isEmpty()) {
+        const bool isDataExist = saveVotesListToDb(votes);
+        isEmitResult = isDataExist;
+    }
+    if (isEmitResult) {
+        QVector<std::int64_t> vecChatIds;
+        for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
+            QSharedPointer<ResponseFromBot> rs = findMatches(rq);
+            emit signalResponseFromBotReady(rs);
+            vecChatIds.append(rq.chat_id);
+        }
+        removeChatIdsFromMapRequestToBot(vecChatIds);
+        listRequestTypeInProgress.removeAll(RequestToBot::RequestType::RequestToSearch);
         return;
     }
-    const bool isDataExist = saveVotesListToDb(votes);
-    if (isDataExist) {
-        emitResult();
-        return;
-    }
-    apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
+    QTimer::singleShot(500, [page, this](){ apiClientPetition->requestToGetPetitionVotesList(page + 1); });
 }
 
 bool PetitionManager::saveVotesListToDb(QSharedPointer<PetitionVotes> votes)
@@ -99,22 +91,29 @@ bool PetitionManager::saveVotesListToDb(QSharedPointer<PetitionVotes> votes)
         DbPetitionVote dbPetitionVote(node.number,
                                       node.name,
                                       node.date);
-        if (DbManager::instance().dbPetitionVoteExist(dbPetitionVote)) {
+        if (DbManager::instance().dbPetitionVoteExist(dbPetitionVote, apiClientPetition->getPetitionUrl())) {
             ++countExistingVotes;
             continue;
         }
-        DbManager::instance().saveDbPetitionVote(dbPetitionVote);
+        DbManager::instance().saveDbPetitionVote(dbPetitionVote, apiClientPetition->getPetitionUrl());
     }
-    return countExistingVotes >= 30;
+    return countExistingVotes >= votes->rows.count();
 }
 
-void PetitionManager::emitResult()
+void PetitionManager::removeChatIdsFromMapRequestToBot(const QVector<int64_t> &vecChatIds)
 {
-    for (const RequestToBot& rq: qAsConst(mapRequestToBot)) {
-        QSharedPointer<ResponseFromBot> rs = findMatches(rq);
-        emit signalListResultReady(rs);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    for(auto it = mapRequestToBot.begin(); it != mapRequestToBot.end(); ) {
+        if(vecChatIds.contains(it.key())){
+            it = mapRequestToBot.erase(it);
+        }
+        else {
+            ++it;
+        }
     }
-    mapRequestToBot.clear();
+#else
+    mapRequestToBot.removeIf([&vecChatIds](std::pair<std::int64_t, const RequestToBot&> pair){ return vecChatIds.contains(pair.first); });
+#endif
 }
 
 QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot& rq)
@@ -123,8 +122,8 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
     const QString dots = "...";
     const QString textQt = QString::fromStdString(rq.request_text);
     const QStringList list = textQt.split(' ');
-    const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list);
-    QString res = "👍 Ці люди молодці:\n";
+    const QVector<QSharedPointer<DbPetitionVote>> vecRes = DbManager::instance().findMatches(list, apiClientPetition->getPetitionUrl());
+    QString res = "📌 Ці люди підписали петицію:\n";
     for (const QSharedPointer<DbPetitionVote>& dbPetitionVote : vecRes) {
         QString vote = dbPetitionVote->name
                 + " ("
@@ -145,34 +144,3 @@ QSharedPointer<ResponseFromBot> PetitionManager::findMatches(const RequestToBot&
     return rs;
 }
 
-void PetitionManager::runfillingDatabase()
-{
-    bool allDataIsReceived  = false;
-    auto functionSaveVotesListToDb = [this, &allDataIsReceived](QSharedPointer<PetitionVotes> votes)
-    {
-        saveVotesListToDb(votes);
-        allDataIsReceived = votes->rows.isEmpty();
-    };
-
-    apiClientPetition.reset(new ApiClientPetition());
-    apiClientPetition->init();
-    connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesListReceived,
-            this, functionSaveVotesListToDb);
-
-    while(true)
-    {
-        if (allDataIsReceived) {
-            return;
-        }
-        QEventLoop loop;
-        QTimer timer;
-        QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-        QObject::connect(apiClientPetition.get(), &ApiClientPetition::signalPetitionVotesListReceived,
-                         &loop, &QEventLoop::quit);
-        timer.start(3600000);
-        apiClientPetition->requestToGetPetitionVotesList(++lastRqPage);
-        loop.exec();
-        QThread::msleep(500);
-    }
-
-}

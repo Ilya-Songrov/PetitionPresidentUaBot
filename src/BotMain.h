@@ -26,19 +26,22 @@ private slots:
     void slotOnCommand(const TgBot::Message::Ptr message, QString commandName);
     void slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message);
     void slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callbackQuery);
-    void slotListResultReady(QSharedPointer<ResponseFromBot> rs);
+    void slotResponseFromBotReady(QSharedPointer<ResponseFromBot> rs);
 
 private:
     void setSettings();
     void initDb();
+    QWeakPointer<PetitionManager> getPetitionManager(const std::int64_t chat_id);
 
 private:
     QScopedPointer<BotThreadManager> botThreadManager;
-    QScopedPointer<PetitionManager> petitionManager;
+    QMap<QString, QSharedPointer<PetitionManager>> mapPetitionManagers; // <petitionUrl, Manager>
+    QMap<std::int64_t, QString> mapPetitionUrlForChatId; // <chat_id, petitionUrl>
     QThread threadPetitionManager;
-    const QString commandStart      = "/start";
-    const QString commandHelp       = "/help";
-    const QString commandSearch     = "/search";
-    const QString commandCountVotes = "/count_votes";
+    const QString commandStart          = "/start";
+    const QString commandHelp           = "/help";
+    const QString commandSearch         = "/search";
+    const QString commandCountVotes     = "/count_votes";
+    const QString commandSetPetitionUrl = "/set_petition_url";
 };
 

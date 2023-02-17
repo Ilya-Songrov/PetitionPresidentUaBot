@@ -3,7 +3,6 @@
 
 BotMain::BotMain(QObject *parent) : QObject(parent)
   , botThreadManager(nullptr)
-  , petitionManager(nullptr)
 {
 
 }
@@ -18,9 +17,9 @@ void BotMain::startBot()
     initDb();
     botThreadManager.reset(new BotThreadManager(GlobalConfigInstance::instance().getTokenFromFile(),
                                                 QStringList() << commandStart << commandHelp
-                                                << commandSearch << commandCountVotes));
-    petitionManager.reset(new PetitionManager());
-    petitionManager->init();
+                                                << commandSearch << commandCountVotes << commandSetPetitionUrl));
+//    petitionManager.reset(new PetitionManager());
+//    petitionManager->init();
     setSettings();
 }
 
@@ -31,10 +30,23 @@ void BotMain::slotOnAnyMessageWasWrite(const TgBot::Message::Ptr message)
             || StringTools::startsWith(message->text, commandHelp.toStdString())
             || StringTools::startsWith(message->text, commandSearch.toStdString())
             || StringTools::startsWith(message->text, commandCountVotes.toStdString())
+            || StringTools::startsWith(message->text, commandSetPetitionUrl.toStdString())
             ) {
         return;
     }
-    petitionManager->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::RequesttToSearch));
+    else if (StringTools::startsWith(message->text, "https://petition.president.gov.ua/petition/")) {
+        static const std::string postfix = "default_petition_url";
+        if (StringTools::endsWith(message->text, postfix)) {
+            DbManager::instance().insertOrReplaceDefaultPetitionUrl(message->text.substr(0, message->text.length() - postfix.length()));
+            botThreadManager->bot().getApi().sendMessage(message->chat->id, "Ви успішно змінили дефолтну петицію.");
+            return;
+        }
+        DbManager::instance().insertOrUpdatePetitionUrlForChatId(message->text, message->chat->id);
+        mapPetitionUrlForChatId.remove(message->chat->id);
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "Ви успішно змінили петицію.");
+        return;
+    }
+    getPetitionManager(message->chat->id).toStrongRef()->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::RequestType::RequestToSearch));
 }
 
 void BotMain::slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callbackQuery)
@@ -43,7 +55,7 @@ void BotMain::slotOnCallbackQueryWasWrite(const TgBot::CallbackQuery::Ptr callba
     botThreadManager->bot().getApi().sendMessage(callbackQuery->id, "Your message is: " + callbackQuery->data);
 }
 
-void BotMain::slotListResultReady(QSharedPointer<ResponseFromBot> rs)
+void BotMain::slotResponseFromBotReady(QSharedPointer<ResponseFromBot> rs)
 {
     try {
         botThreadManager->bot().getApi().sendMessage(rs->chat_id, rs->response_text);
@@ -57,25 +69,21 @@ void BotMain::slotOnCommand(const TgBot::Message::Ptr message, QString commandNa
     qDebug() << "print_function:" << __FUNCTION__ << "line:" << __LINE__ << "message->text:" << message->text.c_str()
              << "commandName:" << commandName << Qt::endl;
     if (commandName == commandStart || commandName == commandHelp) {
-        botThreadManager->bot().getApi().sendMessage(message->chat->id, "❗️ Наша ціль - зібрати більше 1000000 підписів.\n"
-                                                                        "Це петиція про денонсування закону про ратифікацію Стабмульської конвенції.\n"
-                                                                        "Не полінінуйтесь прочитати і підписати.",
-                                                     false, 0, std::make_shared<TgBot::GenericReply>(), "Markdown", false);
-        botThreadManager->bot().getApi().sendMessage(message->chat->id, "https://petition.president.gov.ua/petition/146508");
-        botThreadManager->bot().getApi().sendMessage(message->chat->id, "Якщо ви підписали петицію, введіть свою фамілію чи ім'я:");
+        getPetitionManager(message->chat->id).toStrongRef()->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::RequestType::GetDescription));
     }
     else if (commandName == commandSearch) {
         botThreadManager->bot().getApi().sendMessage(message->chat->id, "Якщо ви підписали петицію, введіть свою фамілію чи ім'я:");
     }
     else if (commandName == commandCountVotes) {
-        petitionManager->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::CheckCountVotes));
+        getPetitionManager(message->chat->id).toStrongRef()->executeRequestToBot(RequestToBot(message->chat->id, message->text, RequestToBot::RequestType::CheckCountVotes));
+    }
+    else if (commandName == commandSetPetitionUrl) {
+        botThreadManager->bot().getApi().sendMessage(message->chat->id, "Для змінення петиції введіть адресу петиції. Посилання має бути схожим на адресу в розділі /help");
     }
 }
 
 void BotMain::setSettings()
 {
-    connect(petitionManager.get(), &PetitionManager::signalListResultReady, this, &BotMain::slotListResultReady);
-
     connect(botThreadManager.get(), &BotThreadManager::signalOnCommand, this, std::bind(&BotMain::slotOnCommand, this, std::placeholders::_1, std::placeholders::_2));
     connect(botThreadManager.get(), &BotThreadManager::signalOnAnyMessage, this, std::bind(&BotMain::slotOnAnyMessageWasWrite, this, std::placeholders::_1));
     connect(botThreadManager.get(), &BotThreadManager::signalOnCallbackQuery, this, std::bind(&BotMain::slotOnCallbackQueryWasWrite, this, std::placeholders::_1));
@@ -87,7 +95,22 @@ void BotMain::initDb()
     const bool isOpened = DbManager::instance().init(dbFilePath);
     if (isOpened && DbManager::instance().sizeDb() == 0) {
         DbManager::instance().createTables();
-        petitionManager.reset(new PetitionManager());
-        petitionManager->fillDatabase();
     }
+}
+
+QWeakPointer<PetitionManager> BotMain::getPetitionManager(const int64_t chat_id)
+{
+    QString petitionUrl = mapPetitionUrlForChatId.value(chat_id);
+    if (petitionUrl.isEmpty()){
+        petitionUrl = DbManager::instance().getPetitionUrlForChatId(chat_id);
+        mapPetitionUrlForChatId.insert(chat_id, petitionUrl);
+    }
+    if (mapPetitionManagers.contains(petitionUrl)){
+        return mapPetitionManagers.value(petitionUrl);
+    }
+    QSharedPointer<PetitionManager> petitionManager = QSharedPointer<PetitionManager>(new PetitionManager());
+    petitionManager->init(petitionUrl);
+    connect(petitionManager.get(), &PetitionManager::signalResponseFromBotReady, this, &BotMain::slotResponseFromBotReady);
+    mapPetitionManagers.insert(petitionUrl, petitionManager);
+    return petitionManager;
 }

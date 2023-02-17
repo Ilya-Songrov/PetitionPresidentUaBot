@@ -5,9 +5,9 @@ git clone --single-branch --branch master <this_repo>
 cd <this_repo>/scripts/
 SCRIPT_FOLDER_ROOT=$PWD
 
-# download any version of build (for exemple 1.3.1)
+# download any version of build (for exemple 2.0.0)
 cd $SCRIPT_FOLDER_ROOT
-wget https://github.com/Ilya-Songrov/PetitionPresidentUaBot/releases/download/1.3.1/DeployKit_PetitionPresidentUaBot.zip
+wget https://github.com/Ilya-Songrov/PetitionPresidentUaBot/releases/download/2.0.0/DeployKit_PetitionPresidentUaBot.zip
 unzip DeployKit_PetitionPresidentUaBot.zip
 rm DeployKit_PetitionPresidentUaBot.zip
 
@@ -28,7 +28,7 @@ sudo docker build  . \
     --no-cache \
     --force-rm \
     --file DockerfileRun \
-    --tag petition-president-ua-bot
+    --tag petition-president-ua-bot:2.0.0
 sudo docker image ls
 
 # run docker on local host
@@ -36,12 +36,11 @@ mkdir -p ~/petition-president-ua-bot/db
 mkdir -p ~/petition-president-ua-bot/logs
 # sudo docker ps # show all running dockers
 # sudo docker stop <container-id> # stop old version
-sudo docker run \
+sudo docker run --detach \
     --volume ~/petition-president-ua-bot/db:/bot-folder-inside-docker/db \
     --volume ~/petition-president-ua-bot/logs:/bot-folder-inside-docker/logs \
     --restart=always \
-    --detach \
-    petition-president-ua-bot
+    petition-president-ua-bot:2.0.0
 sudo docker ps
 # sudo docker ps --latest # show the latest created container (includes all states)
 # sudo docker rm -f <container_id> # to remove other running instances
@@ -60,10 +59,10 @@ sudo apt install docker.io -y
 sudo docker load -i ~/bot-image.tar
 mkdir -p ~/petition-president-ua-bot/db
 mkdir -p ~/petition-president-ua-bot/logs
-sudo docker run \
+sudo docker run --detach \
     --volume ~/petition-president-ua-bot/db:/bot-folder-inside-docker/db \
     --volume ~/petition-president-ua-bot/logs:/bot-folder-inside-docker/logs \
     --restart=always \
-    --detach petition-president-ua-bot
+    petition-president-ua-bot:2.0.0
 sudo docker ps
 ```

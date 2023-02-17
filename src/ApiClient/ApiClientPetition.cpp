@@ -1,9 +1,9 @@
 #include "ApiClientPetition.hpp"
 
-ApiClientPetition::ApiClientPetition(QObject* parent)
+ApiClientPetition::ApiClientPetition(const QString &petitionUrl, QObject* parent)
     : ApiClientAbstract{parent}
-    , _urlPetitionVotesTotal("https://petition.president.gov.ua/petition/146508")
-    , _urlPetitionVotesList("https://petition.president.gov.ua/petition/146508/votes")
+    , _urlPetitionVotesTotal(petitionUrl)
+    , _urlPetitionVotesList(petitionUrl + "/votes")
     , votingWasEnded(false)
     , lastTotalPetitionVotes(-1)
 {
@@ -41,6 +41,11 @@ int ApiClientPetition::getLastTotalPetitionVotes() const
     return lastTotalPetitionVotes;
 }
 
+QString ApiClientPetition::getPetitionUrl() const
+{
+    return _urlPetitionVotesTotal;
+}
+
 void ApiClientPetition::parseResponse(QNetworkReply* reply)
 {
     const QString url = reply->url().toString();
@@ -69,8 +74,12 @@ void ApiClientPetition::parseResponse(QNetworkReply* reply)
         emit signalPetitionVotesTotalReceived(lastTotalPetitionVotes);
     }
     else if(url.contains(_urlPetitionVotesList)){
+        QString copyUrl = url;
+        copyUrl.remove(_urlPetitionVotesList + "/");
+        bool ok = false;
+        const int currentPage = copyUrl.toInt(&ok);
         QSharedPointer<PetitionVotes> petitionVotes = parseXmlRespnse(arrReply);
-        emit signalPetitionVotesListReceived(petitionVotes);
+        emit signalPetitionVotesListReceived(petitionVotes, ok ? currentPage : 0);
     }
 }
 
@@ -107,6 +116,9 @@ QSharedPointer<PetitionVotes> ApiClientPetition::parseXmlRespnse(const QByteArra
         QString number         = nodeListTableCell.at(0).toElement().text();
         QString name           = nodeListTableCell.at(1).toElement().text();
         QString date           = nodeListTableCell.at(2).toElement().text();
+        if(number.isEmpty() || name.isEmpty() || date.isEmpty()){
+            continue;
+        }
         petitionVotes->rows.append(PetitionVotesNode(number, name, date));
     }
     return petitionVotes;

@@ -24,18 +24,22 @@
 #include <QSqlRecord>
 
 
-class DbWorker : public QObject
+class DbAccessor : public QObject
 {
 public:
-    static DbWorker& instance();
+    static DbAccessor& instance();
 
-    bool runQuery(const QSqlQuery& query);
-    bool runQuery(const QString& strQuery);
-    QVector<QVariantList> getQueryResult(const QString& strQuery);
+    bool runQueryWithoutResult(QSqlQuery& query);
+    bool runQueryWithoutResult(const QString& strQuery);
+    QVector<QVariantList> runQueryWithResult(QSqlQuery& query);
+    QVector<QVariantList> runQueryWithResult(const QString& strQuery);
 
 private:
-    Q_DISABLE_COPY_MOVE(DbWorker)
-    DbWorker();
-    ~DbWorker();
+    QVector<QVariantList> parseSqlQuery(QSqlQuery& query);
+
+private:
+    Q_DISABLE_COPY_MOVE(DbAccessor)
+    DbAccessor();
+    ~DbAccessor();
 };
 

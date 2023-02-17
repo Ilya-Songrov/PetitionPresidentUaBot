@@ -4,14 +4,15 @@
 
 struct RequestToBot
 {
-    enum RequestType{
-        RequesttToSearch,
+    enum class RequestType{
+        GetDescription,
+        RequestToSearch,
         CheckCountVotes,
     };
 
     std::int64_t chat_id        = 0;
     std::string request_text    = {};
-    RequestType request_type    = RequesttToSearch;
+    RequestType request_type    = RequestType::RequestToSearch;
 
     RequestToBot(std::int64_t a_chat_id,
                  const std::string& a_request_text,

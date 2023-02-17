@@ -20,8 +20,8 @@ SOURCES += \
         ApiClient/ApiClientAbstract.cpp \
         ApiClient/ApiClientPetition.cpp \
         BotMain.cpp \
+        Db/DbAccessor.cpp \
         Db/DbManager.cpp \
-        Db/DbWorker.cpp \
         Mangers/BotThreadManager.cpp \
         Mangers/PetitionManager.cpp \
         Utils/FileWorker.cpp \
@@ -32,9 +32,9 @@ HEADERS += \
     ApiClient/ApiClientAbstract.hpp \
     ApiClient/ApiClientPetition.hpp \
     BotMain.h \
+    Db/DbAccessor.hpp \
     Db/DbManager.hpp \
     Db/DbTables.hpp \
-    Db/DbWorker.hpp \
     Mangers/BotThreadManager.hpp \
     Mangers/LogManager.hpp \
     Mangers/PetitionManager.hpp \

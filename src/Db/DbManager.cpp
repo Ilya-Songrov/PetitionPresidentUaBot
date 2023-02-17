@@ -38,18 +38,89 @@ qint64 DbManager::sizeDb()
 
 void DbManager::createTables()
 {
-    QSqlQuery query;
-    query.prepare(QString("CREATE TABLE IF NOT EXISTS %1 ("
-                          " id varchar(36) NOT NULL PRIMARY KEY"
-                          " , data JSON NOT NULL"
-                          " , number_num INTEGER NOT NULL"
-                          " , name TEXT NOT NULL"
-                          " , date_ts BIGINT NOT NULL"
-                          " );").arg(DbTables::votes));
-    DbWorker::instance().runQuery(query);
+    DbAccessor::instance().runQueryWithoutResult(QString("CREATE TABLE IF NOT EXISTS %1 ("
+                                                         " id varchar(36) NOT NULL PRIMARY KEY"
+                                                         " , data JSON NOT NULL"
+                                                         " , number_num INTEGER NOT NULL"
+                                                         " , name TEXT NOT NULL"
+                                                         " , date_ts BIGINT NOT NULL"
+                                                         " , petition_url TEXT NOT NULL"
+                                                         " );").arg(DbTables::votes));
+    DbAccessor::instance().runQueryWithoutResult(QString("CREATE TABLE IF NOT EXISTS %1 ("
+                                                         " petition_url TEXT NOT NULL"
+                                                         " , chat_id BIGINT NOT NULL PRIMARY KEY"
+                                                         " );").arg(DbTables::petition_url_for_chat_id));
+    DbAccessor::instance().runQueryWithoutResult(QString("CREATE TABLE IF NOT EXISTS %1 ("
+                                                         " id varchar(36) NOT NULL PRIMARY KEY"
+                                                         " , petition_url TEXT NOT NULL"
+                                                         " );").arg(DbTables::default_petition_url));
 }
 
-void DbManager::saveDbPetitionVote(const DbPetitionVote& dbPetitionVote)
+void DbManager::insertOrUpdatePetitionUrlForChatId(const std::string &petitionUrl, const int64_t chat_id)
+{
+    QString queryStr;
+    queryStr.append("INSERT INTO "
+                    + DbTables::petition_url_for_chat_id
+                    + " ("
+                    + DbTables::petition_url_for_chat_idRows
+                    + " )"
+                    + " VALUES (?, ?)"
+                    + " ON CONFLICT (chat_id) DO"
+                    + " UPDATE SET petition_url=EXCLUDED.petition_url;");
+    QSqlQuery query;
+    query.prepare(queryStr);
+    query.addBindValue(QString::fromStdString(petitionUrl));
+    query.addBindValue(qint64(chat_id));
+    DbAccessor::instance().runQueryWithoutResult(query);
+}
+
+QString DbManager::getPetitionUrlForChatId(const int64_t chat_id)
+{
+    QString queryStr = "SELECT "
+            + DbTables::petition_url_for_chat_idRows
+            + " FROM "
+            + DbTables::petition_url_for_chat_id
+            + " WHERE chat_id = '"
+            + QString::number(chat_id)
+            + "';";
+    const QVector<QVariantList> vec = DbAccessor::instance().runQueryWithResult(queryStr);
+    if (!vec.isEmpty() && !vec.first().isEmpty()) {
+        return vec.first().at(0).toString();
+    }
+    return getDefaultPetitionUrl();
+}
+
+void DbManager::insertOrReplaceDefaultPetitionUrl(const std::string &petitionUrl)
+{
+    QString queryStr;
+    queryStr.append("INSERT OR REPLACE INTO "
+                    + DbTables::default_petition_url
+                    + " ("
+                    + DbTables::default_petition_urlRows
+                    + " )"
+                    + " VALUES (?, ?);");
+    QSqlQuery query;
+    query.prepare(queryStr);
+    query.addBindValue("00000000-0000-0000-0000-000000000000");
+    query.addBindValue(QString::fromStdString(petitionUrl));
+    DbAccessor::instance().runQueryWithoutResult(query);
+}
+
+QString DbManager::getDefaultPetitionUrl()
+{
+    QString queryStr = "SELECT "
+            + QString(" petition_url")
+            + " FROM "
+            + DbTables::default_petition_url
+            + " WHERE id = '00000000-0000-0000-0000-000000000000';";
+    const QVector<QVariantList> vec = DbAccessor::instance().runQueryWithResult(queryStr);
+    if (!vec.isEmpty() && !vec.first().isEmpty()) {
+        return vec.first().at(0).toString();
+    }
+    return "https://petition.president.gov.ua/petition/146508";
+}
+
+void DbManager::saveDbPetitionVote(const DbPetitionVote& dbPetitionVote, const QString &petition_url)
 {
     QString queryStr;
     queryStr.append("INSERT INTO "
@@ -57,7 +128,7 @@ void DbManager::saveDbPetitionVote(const DbPetitionVote& dbPetitionVote)
                     + " ("
                     + DbTables::votesRows
                     + " )"
-                    + " VALUES (?, ?, ?, ?, ?);");
+                    + " VALUES (?, ?, ?, ?, ?, ?);");
     QSqlQuery query;
     query.prepare(queryStr);
     query.addBindValue(dbPetitionVote.id);
@@ -65,34 +136,45 @@ void DbManager::saveDbPetitionVote(const DbPetitionVote& dbPetitionVote)
     query.addBindValue(dbPetitionVote.number_num);
     query.addBindValue(dbPetitionVote.name);
     query.addBindValue(dbPetitionVote.date_ts);
-    DbWorker::instance().runQuery(query);
+    query.addBindValue(petition_url);
+    DbAccessor::instance().runQueryWithoutResult(query);
 }
 
-bool DbManager::dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote)
+bool DbManager::dbPetitionVoteExist(const DbPetitionVote& dbPetitionVote, const QString &petition_url)
 {
-    const QString queryStr = "SELECT count(*) FROM "
-            + DbTables::votes
-            + " WHERE json_extract(data, '$.name') = '" + dbPetitionVote.name + "'"
-            + " AND json_extract(data, '$.date_str') = '" + dbPetitionVote.date_str + "'"
-            + " ;";
-    const QVector<QVariantList> vec = DbWorker::instance().getQueryResult(queryStr);
+    QSqlQuery query;
+    query.prepare("SELECT count(*) FROM "
+                  + DbTables::votes
+                  + " WHERE json_extract(data, '$.name') = :name"
+                  + " AND json_extract(data, '$.date_str') = :date_str"
+                  + " AND petition_url = :petition_url"
+                  + " ;");
+    query.bindValue(":name", dbPetitionVote.name);
+    query.bindValue(":date_str", dbPetitionVote.date_str);
+    query.bindValue(":petition_url", petition_url);
+    const QVector<QVariantList> vec = DbAccessor::instance().runQueryWithResult(query);
     if (!vec.isEmpty() && !vec.first().isEmpty()) {
         return vec.first().at(0).toInt() > 0;
     }
     return false;
 }
 
-int DbManager::getCountTotalVotes()
+int DbManager::getCountTotalVotes(const QString &petition_url)
 {
-    const QString queryStr = "SELECT count(*) FROM " + DbTables::votes + ";";
-    const QVector<QVariantList> vec = DbWorker::instance().getQueryResult(queryStr);
+    QSqlQuery query;
+    query.prepare("SELECT count(*) FROM "
+                  + DbTables::votes
+                  + " WHERE petition_url = :petition_url"
+                  + " ;");
+    query.bindValue(":petition_url", petition_url);
+    const QVector<QVariantList> vec = DbAccessor::instance().runQueryWithResult(query);
     if (!vec.isEmpty() && !vec.first().isEmpty()) {
         return vec.first().at(0).toInt();
     }
     return 0;
 }
 
-QVector<QSharedPointer<DbPetitionVote> > DbManager::findMatches(const QStringList& words)
+QVector<QSharedPointer<DbPetitionVote> > DbManager::findMatches(const QStringList& words, const QString &petition_url)
 {
     if (words.isEmpty()) {
         return {};
@@ -101,13 +183,15 @@ QVector<QSharedPointer<DbPetitionVote> > DbManager::findMatches(const QStringLis
             + DbTables::votesRows
             + " FROM "
             + DbTables::votes
-            + " WHERE ";
+            + " WHERE "
+            + " petition_url = '"
+            + petition_url
+            + "'";
     for (const QString& word : words) {
-        queryStr += " name LIKE '%" + word + "%' AND";
+        queryStr += " AND name LIKE '%" + word + "%'";
     }
-    queryStr.chop(3);
     queryStr += " ;";
-    const QVector<QVariantList> vecResVL = DbWorker::instance().getQueryResult(queryStr);
+    const QVector<QVariantList> vecResVL = DbAccessor::instance().runQueryWithResult(queryStr);
     QVector<QSharedPointer<DbPetitionVote> > vecResSP;
     for (const QVariantList& variant : vecResVL) {
         QSharedPointer<DbPetitionVote> dbPetitionVote(new DbPetitionVote("", "", ""));
